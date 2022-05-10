@@ -44,7 +44,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             print('Layer '+str(layer_id)+': c='+str(curr_c)+', n='+str(curr_n)+', k='+str(curr_k))
             assert (curr_n >= curr_k)
 
-            # actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
             # pre_additive_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='no-scale', name='pre_additive_'+str(layer_id))
             # self.spatial_conditional_transforms[pre_additive_layer.name] = pre_additive_layer
@@ -72,7 +72,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             self.spatial_conditional_transforms[additive_layer.name] = additive_layer
             additive_layers.append(additive_layer)
             
-        # self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
+        self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
         # self.pre_additive_layers = torch.nn.ModuleList(pre_additive_layers)
         self.conv_layers = torch.nn.ModuleList(conv_layers)
         # self.conv_nonlin_layers = torch.nn.ModuleList(conv_nonlin_layers)
@@ -200,9 +200,9 @@ class ConditionalSchurTransform(torch.nn.Module):
         for layer_id, k in enumerate(self.k_list):
             for squeeze_i in range(self.squeeze_list[layer_id]): curr_y, _ = self.squeeze_layer.transform_with_logdet(curr_y)
 
-            # curr_y, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(curr_y)
-            # if initialization and not self.actnorm_layers[layer_id].initialized: return curr_y, self.actnorm_layers[layer_id]
-            # actnorm_logdets.append(actnorm_logdet)
+            curr_y, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(curr_y)
+            if initialization and not self.actnorm_layers[layer_id].initialized: return curr_y, self.actnorm_layers[layer_id]
+            actnorm_logdets.append(actnorm_logdet)
 
             # curr_params = spatial_param_assignments[self.pre_additive_layers[layer_id].name]
             # pre_additive_bias, pre_additive_log_scale = self.cond_mult*curr_params["bias"], curr_params["log_scale"]
@@ -211,7 +211,7 @@ class ConditionalSchurTransform(torch.nn.Module):
 
             curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
             # conv_kernel, conv_bias = self.cond_mult*curr_params["kernel"], self.cond_mult*curr_params["bias"]
-            conv_kernel, conv_bias = 0.03*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
+            conv_kernel, conv_bias = 0.1*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
             curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y, conv_kernel, conv_bias)
             conv_logdets.append(conv_logdet)
 
@@ -267,14 +267,14 @@ class ConditionalSchurTransform(torch.nn.Module):
 
                 curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
                 # conv_kernel, conv_bias = self.cond_mult*curr_params["kernel"], self.cond_mult*curr_params["bias"]
-                conv_kernel, conv_bias = 0.03*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
+                conv_kernel, conv_bias = 0.1*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
                 curr_y = self.conv_layers[layer_id].inverse_transform(curr_y, conv_kernel, conv_bias)
 
                 # curr_params = spatial_param_assignments[self.pre_additive_layers[layer_id].name]
                 # pre_additive_bias, pre_additive_log_scale = self.cond_mult*curr_params["bias"], curr_params["log_scale"]
                 # curr_y = self.pre_additive_layers[layer_id].inverse_transform(curr_y, pre_additive_bias, pre_additive_log_scale)
 
-                # curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
 
                 for squeeze_i in range(self.squeeze_list[layer_id]): curr_y = self.squeeze_layer.inverse_transform(curr_y)
 
