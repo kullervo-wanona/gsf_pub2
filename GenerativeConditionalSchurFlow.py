@@ -211,7 +211,7 @@ class ConditionalSchurTransform(torch.nn.Module):
 
             curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
             # conv_kernel, conv_bias = self.cond_mult*curr_params["kernel"], self.cond_mult*curr_params["bias"]
-            conv_kernel, conv_bias = 0.1*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
+            conv_kernel, conv_bias = 0.03*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
             curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y, conv_kernel, conv_bias)
             conv_logdets.append(conv_logdet)
 
