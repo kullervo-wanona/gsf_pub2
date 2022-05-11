@@ -307,11 +307,11 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         self.squeeze_layer = Squeeze()
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[3]*4, squeeze_list=[0]*4) for i in range(self.n_blocks)]
+            k_list=[3]*2, squeeze_list=[0]*2) for i in range(self.n_blocks)]
         self.update_cond_schur_transform_list = torch.nn.ModuleList(update_cond_schur_transform_list)
 
         base_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[3]*4, squeeze_list=[0]*4) for i in range(self.n_blocks)]
+            k_list=[3]*2, squeeze_list=[0]*2) for i in range(self.n_blocks)]
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
         if self.cond_net_mode == 'FC':
