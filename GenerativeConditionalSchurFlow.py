@@ -315,7 +315,8 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
         if self.cond_net_mode == 'FC':
-            self.main_cond_net_c_out = 256
+            self.main_cond_net_c_out = 2048
+            # self.main_cond_net_c_out = 256
             self.main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.main_cond_net_c_out)
             self.spatial_cond_net = self.create_fc_spatial_cond_net(c_in=self.main_cond_net_c_out, n_out=self.n_in//2, c_out=self.update_cond_schur_transform_list[0].spatial_cond_param_shape[0])
             self.non_spatial_cond_net = self.create_fc_non_spatial_cond_net(c_in=self.main_cond_net_c_out, c_out=self.update_cond_schur_transform_list[0].non_spatial_n_cond_params)
@@ -421,51 +422,78 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
     ################################################################################################
 
+
     def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
-            torch.nn.Linear(c_in*n_in*n_in, 256),
-            # torch.nn.BatchNorm1d(channel_multiplier*32),
-            # torch.nn.LayerNorm(channel_multiplier*32),
+            torch.nn.Linear(c_in*n_in*n_in, c_out),
             torch.nn.ReLU(True),
-            torch.nn.Linear(256, 256),
-            # torch.nn.BatchNorm1d(channel_multiplier*32),
-            # torch.nn.LayerNorm(channel_multiplier*32),
-            torch.nn.ReLU(True),
-            torch.nn.Linear(256, c_out),
             )
         net = helper.cuda(net)
-        # out = net(torch.rand((10, c_in, n_in, n_in)))
-        # trace()
         return net
 
     def create_fc_spatial_cond_net(self, c_in, n_out, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
-            torch.nn.Linear(c_in, channel_multiplier*32),
-            # torch.nn.BatchNorm1d(channel_multiplier*32),
-            # torch.nn.LayerNorm(channel_multiplier*32),
-            torch.nn.ReLU(True),
-            torch.nn.Linear(channel_multiplier*32, c_out*n_out*n_out),
+            torch.nn.Linear(c_in, c_out*n_out*n_out),
             ViewLayer(shape=[-1, c_out, n_out, n_out])
             )
         net = helper.cuda(net)
-        # out = net(torch.rand((10, 512)))
-        # trace()
         return net
 
     def create_fc_non_spatial_cond_net(self, c_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
-            torch.nn.Linear(c_in, channel_multiplier*32),
-            # torch.nn.BatchNorm1d(channel_multiplier*32),
-            # torch.nn.LayerNorm(channel_multiplier*32),
-            torch.nn.ReLU(True),
-            torch.nn.Linear(channel_multiplier*32, c_out),
+            torch.nn.Linear(c_in, c_out),
             )
 
         net = helper.cuda(net)
-        # out = net(torch.rand((10, 512)))
-        # trace()
         return net
+
+
+    # def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
+    #     net = torch.nn.Sequential(
+    #         torch.nn.Flatten(),
+    #         torch.nn.Linear(c_in*n_in*n_in, 256),
+    #         # torch.nn.BatchNorm1d(channel_multiplier*32),
+    #         # torch.nn.LayerNorm(channel_multiplier*32),
+    #         torch.nn.ReLU(True),
+    #         torch.nn.Linear(256, 256),
+    #         # torch.nn.BatchNorm1d(channel_multiplier*32),
+    #         # torch.nn.LayerNorm(channel_multiplier*32),
+    #         torch.nn.ReLU(True),
+    #         torch.nn.Linear(256, c_out),
+    #         )
+    #     net = helper.cuda(net)
+    #     # out = net(torch.rand((10, c_in, n_in, n_in)))
+    #     # trace()
+    #     return net
+
+    # def create_fc_spatial_cond_net(self, c_in, n_out, c_out, channel_multiplier=8):
+    #     net = torch.nn.Sequential(
+    #         torch.nn.Linear(c_in, 256),
+    #         # torch.nn.BatchNorm1d(channel_multiplier*32),
+    #         # torch.nn.LayerNorm(channel_multiplier*32),
+    #         torch.nn.ReLU(True),
+    #         torch.nn.Linear(256, c_out*n_out*n_out),
+    #         ViewLayer(shape=[-1, c_out, n_out, n_out])
+    #         )
+    #     net = helper.cuda(net)
+    #     # out = net(torch.rand((10, 512)))
+    #     # trace()
+    #     return net
+
+    # def create_fc_non_spatial_cond_net(self, c_in, c_out, channel_multiplier=8):
+    #     net = torch.nn.Sequential(
+    #         torch.nn.Linear(c_in, 256),
+    #         # torch.nn.BatchNorm1d(channel_multiplier*32),
+    #         # torch.nn.LayerNorm(channel_multiplier*32),
+    #         torch.nn.ReLU(True),
+    #         torch.nn.Linear(256, c_out),
+    #         )
+
+    #     net = helper.cuda(net)
+    #     # out = net(torch.rand((10, 512)))
+    #     # trace()
+    #     return net
 
     ################################################################################################
 
