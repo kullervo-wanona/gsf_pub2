@@ -304,7 +304,8 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
         self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.7])))
 
-        self.squeeze_layer = Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-br-tr-bl')
+        self.squeeze_layers = [Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-br-tr-bl'), 
+                               Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br')]   
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
             k_list=[3]*2, squeeze_list=[0]*2) for i in range(self.n_blocks)]
@@ -328,8 +329,8 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             self.non_spatial_cond_net = self.create_conv_non_spatial_cond_net(c_in=self.main_cond_net_c_out, n_in=(self.n_in//2), 
                 c_out=self.update_cond_schur_transform_list[0].non_spatial_n_cond_params)
 
-        self.c_out = self.c_in*4
-        self.n_out = self.n_in//2
+        self.c_out = self.c_in
+        self.n_out = self.n_in
 
     ################################################################################################
 
@@ -642,12 +643,15 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 ################################################################################################
 
     def transform_with_logdet(self, x, initialization=False):
-        x = x - 0.5
-        x_squeezed, _ = self.squeeze_layer.transform_with_logdet(x)
-        curr_base, curr_update = x_squeezed[:, :x_squeezed.shape[1]//2], x_squeezed[:, x_squeezed.shape[1]//2:]
-
         all_logdets = []
+
+        x = x - 0.5
+        layer_input = x
+
         for i in range(self.n_blocks):
+
+            layer_input_squeezed, _ = self.squeeze_layers[i%2].transform_with_logdet(layer_input)
+            curr_base, curr_update = layer_input_squeezed[:, :layer_input_squeezed.shape[1]//2], layer_input_squeezed[:, layer_input_squeezed.shape[1]//2:]
 
             non_spatial_param, spatial_param = self.cond_net_forward(curr_base)
             new_update, update_logdet = self.update_cond_schur_transform_list[i].transform_with_logdet(curr_update, non_spatial_param, spatial_param, initialization)
@@ -660,18 +664,22 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             curr_lodget = update_logdet+base_logdet
             all_logdets.append(curr_lodget)
 
-            curr_base, curr_update = new_base, new_update
+            layer_out_squeezed = torch.concat([new_base, new_update], axis=1)
+            layer_out = self.squeeze_layers[i%2].inverse_transform(layer_out_squeezed)
 
+            layer_input = layer_out
+
+        z = layer_out
         total_lodget = sum(all_logdets)
-        z_squeezed = torch.concat([curr_base, curr_update], axis=1)
-        return z_squeezed, total_lodget
+        return z, total_lodget
 
-    def inverse_transform(self, z_squeezed):
+    def inverse_transform(self, z):
         with torch.no_grad():
-            z_base, z_update = z_squeezed[:, :z_squeezed.shape[1]//2], z_squeezed[:, z_squeezed.shape[1]//2:]
-            
-            curr_base, curr_update = z_base, z_update
+
+            layer_out = z
             for i in range(self.n_blocks-1, -1, -1):
+                layer_out_squeezed, _ = self.squeeze_layers[i%2].transform_with_logdet(layer_out)
+                curr_base, curr_update = layer_out_squeezed[:, :layer_out_squeezed.shape[1]//2], layer_out_squeezed[:, layer_out_squeezed.shape[1]//2:]
 
                 non_spatial_param, spatial_param = self.cond_net_forward(curr_update)
                 old_base = self.base_cond_schur_transform_list[i].inverse_transform(curr_base, non_spatial_param, spatial_param)
@@ -679,11 +687,13 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                 non_spatial_param, spatial_param = self.cond_net_forward(old_base)
                 old_update = self.update_cond_schur_transform_list[i].inverse_transform(curr_update, non_spatial_param, spatial_param)
                 
-                curr_base, curr_update = old_base, old_update
+                layer_input_squeezed = torch.concat([old_base, old_update], axis=1)
+                layer_input = self.squeeze_layers[i%2].inverse_transform(layer_input_squeezed)
+                layer_out = layer_input
 
-            x_squeezed = torch.concat([curr_base, curr_update], axis=1)
-            x = self.squeeze_layer.inverse_transform(x_squeezed)
+            x = layer_input
             x = x + 0.5
+            
             return x 
 
     def forward(self, x, dequantize=True):
@@ -699,137 +709,6 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
 
 
-    # def create_main_cond_net(self, c_in, c_out, channel_multiplier=5):
-    #     net = torch.nn.Sequential(
-    #         torch.nn.Conv2d(in_channels=c_in, out_channels=c_in*2*channel_multiplier, kernel_size=3, stride=1, padding='same',
-    #                         dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #         torch.nn.ReLU(),
-    #         torch.nn.Conv2d(in_channels=c_in*2*channel_multiplier, out_channels=c_in*4*channel_multiplier, kernel_size=3, stride=1, padding='same',
-    #                         dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #         torch.nn.ReLU(),
-    #         torch.nn.Conv2d(in_channels=c_in*4*channel_multiplier, out_channels=c_out, kernel_size=3, stride=1, padding='same',
-    #                         dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #         torch.nn.ReLU(),
-    #         )
-    #     net = helper.cuda(net)
-    #     return net
-
-    # def create_spatial_cond_net(self, c_in, c_out, channel_multiplier=1):
-    #     net = torch.nn.Sequential(
-    #         torch.nn.Conv2d(in_channels=c_in, out_channels=c_in*channel_multiplier, kernel_size=3, stride=1, padding='same',
-    #                         dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #         torch.nn.ReLU(),
-    #         torch.nn.Conv2d(in_channels=c_in*channel_multiplier, out_channels=c_out, kernel_size=3, stride=1, padding='same',
-    #                         dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #         )
-    #     net = helper.cuda(net)
-    #     return net
-
-    # def create_non_spatial_cond_net(self, c_in, n_in, c_out, channel_multiplier=1):
-    #     if n_in == 5:
-    #         net = torch.nn.Sequential(
-    #             torch.nn.Conv2d(in_channels=c_in, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_out//4, kernel_size=2, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Flatten(),
-    #             torch.nn.Linear(c_out//4, c_out)
-    #             )
-
-    #     if n_in == 14:
-    #         net = torch.nn.Sequential(
-    #             torch.nn.Conv2d(in_channels=c_in, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=2, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//4*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//4*channel_multiplier, out_channels=c_out//4, kernel_size=3, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Flatten(),
-    #             torch.nn.Linear(c_out//4, c_out)
-    #             )
-    #     if n_in == 16:
-    #         net = torch.nn.Sequential(
-    #             torch.nn.Conv2d(in_channels=c_in, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=2, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//4*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//4*channel_multiplier, out_channels=c_out//8, kernel_size=4, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Flatten(),
-    #             torch.nn.Linear(c_out//8, c_out)
-    #             )
-    #     if n_in == 32:
-    #         net = torch.nn.Sequential(
-    #             torch.nn.Conv2d(in_channels=c_in, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=2, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=2, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//4*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Conv2d(in_channels=c_in//4*channel_multiplier, out_channels=c_out//8, kernel_size=3, stride=1, padding='valid', 
-    #                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
-    #             torch.nn.ReLU(),
-    #             torch.nn.Flatten(),
-    #             torch.nn.Linear(c_out//8, c_out)
-    #             )
-    #     net = helper.cuda(net)
-    #     return net
-
-    # def cond_net_forward(self, x):
-    #     main_cond = self.main_cond_net(x)
-    #     non_spatial_param = self.non_spatial_cond_net(main_cond)
-    #     spatial_param = self.spatial_cond_net(main_cond)
-    #     return non_spatial_param, spatial_param
-
-
-# # from DataLoaders.MNIST.MNISTLoader import DataLoader
-# from DataLoaders.CelebA.CelebA32Loader import DataLoader
-# train_data_loader = DataLoader(batch_size=10)
-# train_data_loader.setup('Training', randomized=True, verbose=True)
-# _, _, example_batch = next(train_data_loader) 
-# example_input = helper.cuda(torch.from_numpy(example_batch['Image']))
-
-# c_in=train_data_loader.image_size[1]
-# n_in=train_data_loader.image_size[3]
-# flow_net = GenerativeConditionalSchurFlow(c_in, n_in)
-# flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=500, test_normalization=True)
-
-# n_param = 0
-# for name, e in flow_net.named_parameters():
-#     print(name, e.requires_grad, e.shape)
-#     n_param += np.prod(e.shape)
-# print('Total number of parameters: ' + str(n_param))
-
-# example_out, logdet_computed = flow_net.transform(example_input)
-# example_input_rec = flow_net.inverse_transform(example_out)
-# print(torch.abs(example_input-example_input_rec).max())
-
-# z, x, log_pdf_z, log_pdf_x = flow_net(example_input)
-
-
-# J, J_flat = flow_net.jacobian(example_input)
-# det_sign, logdet_desired_np = np.linalg.slogdet(J_flat)
-
-# example_out, logdet_computed = flow_net.transform(example_input)
-# logdet_computed_np = helper.to_numpy(logdet_computed)
-
-# logdet_desired_error = np.abs(logdet_desired_np-logdet_computed_np).max()
-# print("Desired Logdet: \n", logdet_desired_np)
-# print("Computed Logdet: \n", logdet_computed_np)
-# print('Logdet error:' + str(logdet_desired_error))
-
-# trace()
 
 
 
@@ -855,32 +734,4 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
 
 
-# class net1(torch.nn.Module):
-#     def __init__(self):
-#         super(net1, self).__init__()
-#         self.seq = torch.nn.Sequential(
-#                         torch.nn.Conv2d(1,20,5),
-#                          torch.nn.ReLU(),
-#                           torch.nn.Conv2d(20,64,5),
-#                        torch.nn.ReLU()
-#                        )   
-
-#     def forward(self, x):
-#         return self.seq(x)
-
-#     #Note: the same result can be obtained by using the for loop as follows
-#     #def forward(self, x):
-#     #    for s in self.seq:
-#     #        x = s(x)
-#     #    return x
-
-
-# net = net1()
-# n_param = 0
-# for name, e in net.named_parameters():
-#     print(name, e.requires_grad, e.shape)
-#     n_param += np.prod(e.shape)
-# print('Total number of parameters: ' + str(n_param))
-
-# trace()
 

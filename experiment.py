@@ -18,10 +18,11 @@ import torch
 
 import helper
 from GenerativeSchurFlow import GenerativeSchurFlow
-from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 
-from DataLoaders.MNIST.MNISTLoader import DataLoader
-# from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
+# from DataLoaders.MNIST.MNISTLoader import DataLoader
+from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
 # from DataLoaders.CelebA.CelebA32Loader import DataLoader
 
 train_data_loader = DataLoader(batch_size=20)
@@ -43,7 +44,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[3, 3, 3, 3, 3, 3])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[20, 20, 20], squeeze_list=[0, 0, 0])
 
-# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[4, 4, 4, 4, 4, 4], squeeze_list=[0, 0, 0, 0, 0, 0])
+# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[4]*5, squeeze_list=[0]*5)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -85,7 +86,8 @@ for epoch in range(100000):
         train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1)
+        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 1)
+        # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 
         if i % 50 == 0:

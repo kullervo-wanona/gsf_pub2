@@ -18,7 +18,8 @@ import numpy as np
 import torch
 
 import helper
-from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 
 from DataLoaders.CelebA.CelebA32Loader import DataLoader
 data_loader = DataLoader(batch_size=10)

@@ -359,26 +359,26 @@ class Squeeze(torch.nn.Module):
         Returns:
             the squeezed tensor (B x C/4 x 2H x 2W).
         """
-        with torch.no_grad():
-            B, C, H, W = x.shape
-            if self.chan_mode == 'input_channels_adjacent':
-                if self.spatial_mode == 'tl-tr-bl-br':
-                    x = x.reshape(B, 2, 2, C//4, H, W)
-                elif self.spatial_mode == 'tl-br-tr-bl':
-                    x = x.reshape(B, 4, C//4, H, W)
-                    x = torch.concat([torch.concat([x[:, 0, np.newaxis, np.newaxis], x[:, 2, np.newaxis, np.newaxis]], axis=2),
-                                      torch.concat([x[:, 3, np.newaxis, np.newaxis], x[:, 1, np.newaxis, np.newaxis]], axis=2)], axis=1)
-                x = x.permute(0, 3, 4, 1, 5, 2)
-            elif self.chan_mode == 'input_channels_apart':
-                if self.spatial_mode == 'tl-tr-bl-br':
-                    x = x.reshape(B, C//4, 2, 2, H, W)
-                elif self.spatial_mode == 'tl-br-tr-bl':
-                    x = x.reshape(B, C//4, 4, H, W)
-                    x = torch.concat([torch.concat([x[:, :, 0, np.newaxis, np.newaxis], x[:, :, 2, np.newaxis, np.newaxis]], axis=3),
-                                      torch.concat([x[:, :, 3, np.newaxis, np.newaxis], x[:, :, 1, np.newaxis, np.newaxis]], axis=3)], axis=2)
-                x = x.permute(0, 1, 4, 2, 5, 3)
-            x = x.reshape(B, C//4, H*2, W*2)
-            return x
+        # with torch.no_grad():
+        B, C, H, W = x.shape
+        if self.chan_mode == 'input_channels_adjacent':
+            if self.spatial_mode == 'tl-tr-bl-br':
+                x = x.reshape(B, 2, 2, C//4, H, W)
+            elif self.spatial_mode == 'tl-br-tr-bl':
+                x = x.reshape(B, 4, C//4, H, W)
+                x = torch.concat([torch.concat([x[:, 0, np.newaxis, np.newaxis], x[:, 2, np.newaxis, np.newaxis]], axis=2),
+                                  torch.concat([x[:, 3, np.newaxis, np.newaxis], x[:, 1, np.newaxis, np.newaxis]], axis=2)], axis=1)
+            x = x.permute(0, 3, 4, 1, 5, 2)
+        elif self.chan_mode == 'input_channels_apart':
+            if self.spatial_mode == 'tl-tr-bl-br':
+                x = x.reshape(B, C//4, 2, 2, H, W)
+            elif self.spatial_mode == 'tl-br-tr-bl':
+                x = x.reshape(B, C//4, 4, H, W)
+                x = torch.concat([torch.concat([x[:, :, 0, np.newaxis, np.newaxis], x[:, :, 2, np.newaxis, np.newaxis]], axis=3),
+                                  torch.concat([x[:, :, 3, np.newaxis, np.newaxis], x[:, :, 1, np.newaxis, np.newaxis]], axis=3)], axis=2)
+            x = x.permute(0, 1, 4, 2, 5, 3)
+        x = x.reshape(B, C//4, H*2, W*2)
+        return x
 
 # class BatchNorm(torch.nn.Module):
 #     def __init__(self, c, n, name=''):
