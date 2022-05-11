@@ -152,7 +152,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 
         K = getattr(self, 'kernel')
         if self.kernel_init == 'I + he_uniform': 
-            K = 0.25*torch.tanh(K) + self.iden_kernel
+            K = 2*torch.tanh(K) + self.iden_kernel
 
         conv_out = spatial_conv2D_lib.spatial_circular_conv2D_th(conv_in, K)
         logdet = self.conv_kernel_to_logdet(K)
@@ -177,7 +177,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 
             K = getattr(self, 'kernel')
             if self.kernel_init == 'I + he_uniform': 
-                K = 0.25*torch.tanh(K) + self.iden_kernel
+                K = 2*torch.tanh(K) + self.iden_kernel
 
             conv_in = self.conv_inverse_func(conv_out, K)
 

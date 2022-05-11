@@ -48,14 +48,14 @@ class GenerativeSchurFlow(torch.nn.Module):
                 curr_c, curr_n, curr_k, kernel_init='I + he_uniform', 
                 bias_mode='spatial', scale_mode='no-scale', name=str(layer_id)))
 
-            nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            # nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
             # nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
             interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
 
         self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
         self.conv_layers = torch.nn.ModuleList(conv_layers)
-        self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
+        # self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
         self.interpolation_layers = torch.nn.ModuleList(interpolation_layers)
         self.squeeze_layer = Squeeze()
 
@@ -223,8 +223,8 @@ class GenerativeSchurFlow(torch.nn.Module):
             curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y)
             conv_logdets.append(conv_logdet)
 
-            curr_y, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(curr_y)
-            nonlin_logdets.append(nonlin_logdet)
+            # curr_y, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            # nonlin_logdets.append(nonlin_logdet)
 
             curr_y, interpolation_logdet = self.interpolation_layers[layer_id].transform_with_logdet(curr_y)
             interpolation_logdets.append(interpolation_logdet)
@@ -239,7 +239,7 @@ class GenerativeSchurFlow(torch.nn.Module):
             curr_y = y
             for layer_id in range(len(self.k_list)-1, -1,-1):
                 curr_y = self.interpolation_layers[layer_id].inverse_transform(curr_y)
-                curr_y = self.nonlin_layers[layer_id].inverse_transform(curr_y)
+                # curr_y = self.nonlin_layers[layer_id].inverse_transform(curr_y)
                 curr_y = self.conv_layers[layer_id].inverse_transform(curr_y)
                 curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
                 for squeeze_i in range(self.squeeze_list[layer_id]): curr_y = self.squeeze_layer.inverse_transform(curr_y)
