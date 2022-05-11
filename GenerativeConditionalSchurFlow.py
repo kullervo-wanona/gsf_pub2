@@ -351,10 +351,10 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
     def create_conv_spatial_cond_net(self, c_in, c_out, channel_multiplier=1):
         net = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels=c_in, out_channels=c_in*channel_multiplier, kernel_size=3, stride=1, padding='same',
+            torch.nn.Conv2d(in_channels=c_in, out_channels=256, kernel_size=3, stride=1, padding='same',
                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(in_channels=c_in*channel_multiplier, out_channels=c_out, kernel_size=3, stride=1, padding='same',
+            torch.nn.Conv2d(in_channels=256, out_channels=c_out, kernel_size=3, stride=1, padding='same',
                             dilation=1, groups=1, bias=True, padding_mode='zeros'),
             )
         net = helper.cuda(net)
@@ -375,17 +375,17 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
         if n_in == 14:
             net = torch.nn.Sequential(
-                torch.nn.Conv2d(in_channels=c_in, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=2, padding='valid', 
+                torch.nn.Conv2d(in_channels=c_in, out_channels=256, kernel_size=4, stride=2, padding='valid', 
                                 dilation=1, groups=1, bias=True, padding_mode='zeros'),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//2*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
+                torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=4, stride=1, padding='valid', 
                                 dilation=1, groups=1, bias=True, padding_mode='zeros'),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_out, kernel_size=3, stride=1, padding='valid', 
+                torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding='valid', 
                                 dilation=1, groups=1, bias=True, padding_mode='zeros'),
                 torch.nn.ReLU(),
                 torch.nn.Flatten(),
-                torch.nn.Linear(c_out, c_out)
+                torch.nn.Linear(256, c_out)
                 )
         if n_in == 16:
             net = torch.nn.Sequential(
