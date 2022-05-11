@@ -20,8 +20,8 @@ import helper
 from GenerativeSchurFlow import GenerativeSchurFlow
 from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
 
-# from DataLoaders.MNIST.MNISTLoader import DataLoader
-from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
+from DataLoaders.MNIST.MNISTLoader import DataLoader
+# from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
 # from DataLoaders.CelebA.CelebA32Loader import DataLoader
 
 train_data_loader = DataLoader(batch_size=10)
@@ -48,7 +48,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=5)
-flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=2, test_normalization=False)
+flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 
 n_param = 0
 for name, e in flow_net.named_parameters():
@@ -89,7 +89,6 @@ for epoch in range(100000):
         optimizer.step()
 
         if i % 50 == 0:
-        # if i % 10 == 0:
             train_latent, _ = flow_net.transform_with_logdet(train_image)
             train_image_reconst = flow_net.inverse_transform(train_latent)
 
@@ -128,13 +127,6 @@ for epoch in range(100000):
 
             print(f'[{epoch + 1}, {i + 1:5d}] Train Z LL, X LL, nats, bits: {train_log_likelihood_z, train_log_likelihood_x, train_nats_per_dim, train_bits_per_dim}')
             print(f'[{epoch + 1}, {i + 1:5d}] Test Z LL, X LL, nats, bits: {test_log_likelihood_z, test_log_likelihood_x, test_nats_per_dim, test_bits_per_dim}')
-
-            # trace()
-
-    # _, _, mean, std = flow_net.compute_actnorm_stats_for_layer(train_data_loader, flow_net.n_layers, setup_mode='Training', n_batches=500, sub_image=None, spatial=True)
-    # print('mean: \n' + str(mean))
-    # print('std: \n' + str(std))
-
 
 print('Experiment took '+str(time.time()-exp_t_start)+' seconds.')
 print('Finished Training')
