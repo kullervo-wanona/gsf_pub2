@@ -210,8 +210,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             pre_additive_logdets.append(pre_additive_logdet)
 
             curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
-            # conv_kernel, conv_bias = self.cond_mult*curr_params["kernel"], self.cond_mult*curr_params["bias"]
-            conv_kernel, conv_bias = 0.5*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
+            conv_kernel, conv_bias = 0.25*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
             curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y, conv_kernel, conv_bias)
             conv_logdets.append(conv_logdet)
 
@@ -266,8 +265,7 @@ class ConditionalSchurTransform(torch.nn.Module):
                 # curr_y = self.conv_nonlin_layers[layer_id].inverse_transform(curr_y)
 
                 curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
-                # conv_kernel, conv_bias = self.cond_mult*curr_params["kernel"], self.cond_mult*curr_params["bias"]
-                conv_kernel, conv_bias = 0.5*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
+                conv_kernel, conv_bias = 0.25*torch.tanh(curr_params["kernel"]), self.cond_mult*curr_params["bias"]
                 curr_y = self.conv_layers[layer_id].inverse_transform(curr_y, conv_kernel, conv_bias)
 
                 curr_params = spatial_param_assignments[self.pre_additive_layers[layer_id].name]
