@@ -23,7 +23,7 @@ class ConditionalSchurTransform(torch.nn.Module):
         self.k_list = k_list
         self.squeeze_list = squeeze_list
         self.n_layers = len(self.k_list)
-        self.cond_mult = 0.1
+        self.cond_mult = 1
 
         print('\n**********************************************************')
         print('Creating ConditionalSchurTransform: ')
@@ -424,15 +424,15 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
-            torch.nn.Linear(c_in*n_in*n_in, channel_multiplier*32),
+            torch.nn.Linear(c_in*n_in*n_in, 256),
             # torch.nn.BatchNorm1d(channel_multiplier*32),
             # torch.nn.LayerNorm(channel_multiplier*32),
             torch.nn.ReLU(True),
-            torch.nn.Linear(channel_multiplier*32, channel_multiplier*32),
+            torch.nn.Linear(256, 256),
             # torch.nn.BatchNorm1d(channel_multiplier*32),
             # torch.nn.LayerNorm(channel_multiplier*32),
             torch.nn.ReLU(True),
-            torch.nn.Linear(channel_multiplier*32, c_out),
+            torch.nn.Linear(256, c_out),
             )
         net = helper.cuda(net)
         # out = net(torch.rand((10, c_in, n_in, n_in)))

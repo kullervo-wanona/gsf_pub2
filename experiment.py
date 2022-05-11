@@ -52,7 +52,7 @@ flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batc
 
 n_param = 0
 for name, e in flow_net.named_parameters():
-    print(name, e.requires_grad, e.shape)
+    print(name, e.requires_grad, e.is_cuda, e.shape)
     n_param += np.prod(e.shape)
 print('Total number of parameters: ' + str(n_param))
 
