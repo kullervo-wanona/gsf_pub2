@@ -381,11 +381,11 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                 torch.nn.Conv2d(in_channels=c_in//2*channel_multiplier, out_channels=c_in//4*channel_multiplier, kernel_size=4, stride=1, padding='valid', 
                                 dilation=1, groups=1, bias=True, padding_mode='zeros'),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(in_channels=c_in//4*channel_multiplier, out_channels=c_out//4, kernel_size=3, stride=1, padding='valid', 
+                torch.nn.Conv2d(in_channels=c_in//4*channel_multiplier, out_channels=c_out, kernel_size=3, stride=1, padding='valid', 
                                 dilation=1, groups=1, bias=True, padding_mode='zeros'),
                 torch.nn.ReLU(),
                 torch.nn.Flatten(),
-                torch.nn.Linear(c_out//4, c_out)
+                torch.nn.Linear(c_out, c_out)
                 )
         if n_in == 16:
             net = torch.nn.Sequential(
