@@ -290,7 +290,7 @@ class ViewLayer(torch.nn.Module):
         return input.view(*self.shape)
         
 class GenerativeConditionalSchurFlow(torch.nn.Module):
-    def __init__(self, c_in, n_in, n_blocks=1, cond_net_mode='Convolutional'):
+    def __init__(self, c_in, n_in, n_blocks=1, cond_net_mode='FC'):
         super().__init__()
         assert (cond_net_mode in ['FC', 'Convolutional'])
 
