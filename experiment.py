@@ -24,11 +24,11 @@ from DataLoaders.MNIST.MNISTLoader import DataLoader
 # from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
 # from DataLoaders.CelebA.CelebA32Loader import DataLoader
 
-train_data_loader = DataLoader(batch_size=10)
+train_data_loader = DataLoader(batch_size=64)
 train_data_loader.setup('Training', randomized=True, verbose=True)
 _, _, example_batch = next(train_data_loader) 
 
-test_data_loader = DataLoader(batch_size=10)
+test_data_loader = DataLoader(batch_size=64)
 test_data_loader.setup('Test', randomized=False, verbose=False)
 _, _, example_test_batch = next(test_data_loader) 
 test_image = helper.cuda(torch.from_numpy(example_test_batch['Image']))
