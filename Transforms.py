@@ -15,6 +15,88 @@ from multi_channel_invertible_conv_lib import spatial_conv2D_lib
 
 ########################################################################################################
 
+# class MultiChannel2DCircularConv(torch.nn.Module):
+#     def __init__(self, c, n, k, kernel_init='I + he_uniform', bias_mode='spatial', scale_mode='no-scale', name=''):
+#         super().__init__()
+#         assert (kernel_init in ['I + he_uniform', 'he_uniform'])
+#         assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
+#         assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])
+
+#         self.name = 'MultiChannel2DCircularConv_' + name
+#         self.n = n
+#         self.c = c
+#         self.k = k
+#         self.kernel_init = kernel_init
+#         self.bias_mode = bias_mode
+#         self.scale_mode = scale_mode
+
+#         rand_kernel_np = helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
+#         if self.kernel_init == 'I + he_uniform': 
+#             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
+#             kernel_np = iden_kernel_np + 0.1*rand_kernel_np 
+#         elif self.kernel_init == 'he_uniform': 
+#             kernel_np = rand_kernel_np
+
+#         kernel_th = helper.cuda(torch.tensor(kernel_np, dtype=torch.float32))
+#         kernel_param = torch.nn.parameter.Parameter(data=kernel_th, requires_grad=True)
+#         setattr(self, 'kernel', kernel_param)
+#         self.conv_inverse_func = spectral_schur_det_lib.generate_frequency_inverse_circular_conv2D(self.k, self.n)
+#         self.conv_kernel_to_logdet = spectral_schur_det_lib.generate_kernel_to_schur_log_determinant(self.k, self.n)
+
+#         if self.bias_mode == 'spatial': 
+#             bias_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+#         elif self.bias_mode == 'non-spatial': 
+#             bias_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
+#         if self.bias_mode in ['non-spatial', 'spatial']: 
+#             bias_param = torch.nn.parameter.Parameter(data=bias_th, requires_grad=True)
+#             setattr(self, 'bias', bias_param)
+        
+#         if self.scale_mode == 'spatial': 
+#             log_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+#         elif self.scale_mode == 'non-spatial': 
+#             log_scale_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
+#         if self.scale_mode in ['non-spatial', 'spatial']: 
+#             log_scale_param = torch.nn.parameter.Parameter(data=log_scale_th, requires_grad=True)
+#             setattr(self, 'log_scale', log_scale_param)
+
+#     def transform_with_logdet(self, conv_in):
+#         if self.bias_mode in ['non-spatial', 'spatial']: 
+#             bias = getattr(self, 'bias')
+#             conv_in = conv_in+bias
+
+#         K = getattr(self, 'kernel')
+#         conv_out = spatial_conv2D_lib.spatial_circular_conv2D_th(conv_in, K)
+#         logdet = self.conv_kernel_to_logdet(K)
+
+#         if self.scale_mode in ['non-spatial', 'spatial']: 
+#             log_scale = getattr(self, 'log_scale')
+#             scale = torch.exp(log_scale)
+#             conv_out = scale*conv_out
+#             if self.scale_mode == 'non-spatial':
+#                 logdet += (self.n*self.n)*log_scale.sum()
+#             elif self.scale_mode == 'spatial':
+#                 logdet += log_scale.sum()
+
+#         return conv_out, logdet
+
+#     def inverse_transform(self, conv_out):
+#         with torch.no_grad():
+#             if self.scale_mode in ['non-spatial', 'spatial']: 
+#                 log_scale = getattr(self, 'log_scale')
+#                 scale = torch.exp(log_scale)
+#                 conv_out = conv_out/(scale+1e-6)
+
+#             K = getattr(self, 'kernel')
+#             conv_in = self.conv_inverse_func(conv_out, K)
+
+#             if self.bias_mode in ['non-spatial', 'spatial']: 
+#                 bias = getattr(self, 'bias')
+#                 conv_in = conv_in-bias
+
+#             return conv_in
+
+
+
 class MultiChannel2DCircularConv(torch.nn.Module):
     def __init__(self, c, n, k, kernel_init='I + he_uniform', bias_mode='spatial', scale_mode='no-scale', name=''):
         super().__init__()
@@ -30,13 +112,17 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
 
-        rand_kernel_np = helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
-            kernel_np = iden_kernel_np + 0.1*rand_kernel_np 
-        elif self.kernel_init == 'he_uniform': 
-            kernel_np = rand_kernel_np
+            self.iden_kernel = helper.cuda(torch.tensor(iden_kernel_np, dtype=torch.float32))
 
+        # if self.kernel_init == 'I + he_uniform': 
+        #     _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
+        #     kernel_np = iden_kernel_np + 0.1*rand_kernel_np 
+        # elif self.kernel_init == 'he_uniform': 
+        #     kernel_np = rand_kernel_np
+
+        kernel_np = helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
         kernel_th = helper.cuda(torch.tensor(kernel_np, dtype=torch.float32))
         kernel_param = torch.nn.parameter.Parameter(data=kernel_th, requires_grad=True)
         setattr(self, 'kernel', kernel_param)
@@ -65,6 +151,9 @@ class MultiChannel2DCircularConv(torch.nn.Module):
             conv_in = conv_in+bias
 
         K = getattr(self, 'kernel')
+        if self.kernel_init == 'I + he_uniform': 
+            K = 0.25*torch.tanh(K) + self.iden_kernel
+
         conv_out = spatial_conv2D_lib.spatial_circular_conv2D_th(conv_in, K)
         logdet = self.conv_kernel_to_logdet(K)
 
@@ -87,6 +176,9 @@ class MultiChannel2DCircularConv(torch.nn.Module):
                 conv_out = conv_out/(scale+1e-6)
 
             K = getattr(self, 'kernel')
+            if self.kernel_init == 'I + he_uniform': 
+                K = 0.25*torch.tanh(K) + self.iden_kernel
+
             conv_in = self.conv_inverse_func(conv_out, K)
 
             if self.bias_mode in ['non-spatial', 'spatial']: 
@@ -94,6 +186,41 @@ class MultiChannel2DCircularConv(torch.nn.Module):
                 conv_in = conv_in-bias
 
             return conv_in
+
+########################################################################################################
+
+class AffineInterpolate(torch.nn.Module):
+    def __init__(self, c, n, name=''):
+        super().__init__()
+        self.name = 'AffineInterpolate_' + name
+        self.n = n
+        self.c = c
+
+        bias_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+        pre_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+        bias_param = torch.nn.parameter.Parameter(data=bias_th, requires_grad=True)
+        pre_scale_param = torch.nn.parameter.Parameter(data=pre_scale_th, requires_grad=True)
+        setattr(self, 'bias', bias_param)
+        setattr(self, 'pre_scale', pre_scale_param)
+
+    def transform_with_logdet(self, affine_in):
+        bias = getattr(self, 'bias')
+        pre_scale = getattr(self, 'pre_scale')
+
+        scale = torch.sigmoid(3.5+pre_scale)
+        affine_out = scale*affine_in+(1-scale)*bias
+        log_scale = torch.log(scale)
+        logdet = log_scale.sum(axis=[1, 2, 3])
+        return affine_out, logdet
+
+    def inverse_transform(self, affine_out):
+        with torch.no_grad():
+            bias = getattr(self, 'bias')
+            pre_scale = getattr(self, 'pre_scale')
+
+            scale = torch.sigmoid(3.5+pre_scale)
+            affine_in = (affine_out-(1-scale)*bias)/(scale+1e-6)            
+            return affine_in
 
 ########################################################################################################
 

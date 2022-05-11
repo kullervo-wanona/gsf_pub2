@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 import helper
-from Transforms import MultiChannel2DCircularConv, Logit, Tanh, PReLU, FixedSLogGate, SLogGate, Actnorm, Squeeze
+from Transforms import MultiChannel2DCircularConv, AffineInterpolate, Logit, Tanh, PReLU, FixedSLogGate, SLogGate, Actnorm, Squeeze
 
 class GenerativeSchurFlow(torch.nn.Module):
     def __init__(self, c_in, n_in, k_list, squeeze_list, final_actnorm=False):
@@ -25,15 +25,13 @@ class GenerativeSchurFlow(torch.nn.Module):
         self.n_layers = len(self.k_list)
 
         self.uniform_dist = torch.distributions.Uniform(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
-        # self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.1])))
-        # self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.07])))
         self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
         self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.7])))
 
         print('\n**********************************************************')
         print('Creating GenerativeSchurFlow: ')
         print('**********************************************************\n')
-        conv_layers, pre_additive_layers, nonlin_layers, actnorm_layers = [], [], []
+        actnorm_layers, conv_layers, interpolation_layers, nonlin_layers = [], [], [], []
 
         accum_squeeze = 0
         for layer_id in range(self.n_layers):
@@ -46,25 +44,19 @@ class GenerativeSchurFlow(torch.nn.Module):
 
             actnorm_layers.append(Actnorm(curr_c, curr_n, name=str(layer_id)))
 
-            pre_additive_layers.append(Affine(curr_c, curr_n, bias_mode='spatial', scale_mode='no-scale', name='pre_additive_'+str(layer_id)))
-
             conv_layers.append(MultiChannel2DCircularConv(
                 curr_c, curr_n, curr_k, kernel_init='I + he_uniform', 
-                bias_mode='non-spatial', scale_mode='no-scale', name=str(layer_id)))
-            # conv_layers.append(MultiChannel2DCircularConv(
-            #     curr_c, curr_n, curr_k, kernel_init='he_uniform', 
-            #     bias_mode='spatial', scale_mode='no-scale', name=str(layer_id)))
+                bias_mode='spatial', scale_mode='no-scale', name=str(layer_id)))
 
-            # if layer_id != self.n_layers-1:
-            #     # nonlin_layers.append(SLogGate(curr_c, curr_n, mode='spatial', name=str(layer_id)))
-            #     nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
-            #     # nonlin_layers.append(FixedSLogGate(curr_c, curr_n, name=str(layer_id)))
+            nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            # nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
-        if self.final_actnorm: actnorm_layers.append(Actnorm(curr_c, curr_n, name='final'))
+            interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
 
+        self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
         self.conv_layers = torch.nn.ModuleList(conv_layers)
         self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
-        self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
+        self.interpolation_layers = torch.nn.ModuleList(interpolation_layers)
         self.squeeze_layer = Squeeze()
 
         self.c_out = curr_c
@@ -83,7 +75,7 @@ class GenerativeSchurFlow(torch.nn.Module):
         dummy_optimizer = torch.optim.Adam(self.parameters())
         x.requires_grad = True
 
-        func_to_J = self.transform
+        func_to_J = self.transform_with_logdet
         z, _ = func_to_J(x)
         assert (len(z.shape) == 4 and len(x.shape) == 4)
         assert (z.shape[0] == x.shape[0])
@@ -216,60 +208,43 @@ class GenerativeSchurFlow(torch.nn.Module):
     ################################################################################################
 
     def transform_with_logdet(self, x, initialization=False):
-        actnorm_logdets, conv_logdets, nonlin_logdets = [], [], []
-        x = x-0.5
-        layer_in = x
-        for layer_id, k in enumerate(self.k_list): 
-            for squeeze_i in range(self.squeeze_list[layer_id]):
-                layer_in = self.squeeze_layer(layer_in)
+        actnorm_logdets, conv_logdets, nonlin_logdets, interpolation_logdets = [], [], [], []
 
-            actnorm_out, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(layer_in)
+        x = x-0.5
+        curr_y = x
+        for layer_id, k in enumerate(self.k_list): 
+            for squeeze_i in range(self.squeeze_list[layer_id]): curr_y, _ = self.squeeze_layer.transform_with_logdet(curr_y)
+
+            curr_y, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(curr_y)
             if initialization and not self.actnorm_layers[layer_id].initialized:
-                return actnorm_out, self.actnorm_layers[layer_id]
+                return curr_y, self.actnorm_layers[layer_id]
             actnorm_logdets.append(actnorm_logdet)
 
-            conv_out, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(actnorm_out)
+            curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y)
             conv_logdets.append(conv_logdet)
 
-            if layer_id != self.n_layers-1 and len(self.nonlin_layers) > 0:
-                nonlin_out, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(conv_out)
-                nonlin_logdets.append(nonlin_logdet)
-            else:
-                nonlin_out = conv_out
+            curr_y, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            nonlin_logdets.append(nonlin_logdet)
 
-            layer_out = nonlin_out
-            layer_in = layer_out
+            curr_y, interpolation_logdet = self.interpolation_layers[layer_id].transform_with_logdet(curr_y)
+            interpolation_logdets.append(interpolation_logdet)
 
-        if self.final_actnorm: 
-            layer_out, actnorm_logdet = self.actnorm_layers[self.n_layers].transform_with_logdet(layer_out)
-            if initialization and not self.actnorm_layers[self.n_layers].initialized:
-                return layer_out, self.actnorm_layers[self.n_layers]
-            actnorm_logdets.append(actnorm_logdet)
-
-        y = layer_out
-        total_log_det = sum(actnorm_logdets)+sum(conv_logdets)+sum(nonlin_logdets) 
+        y = curr_y
+        total_log_det = sum(actnorm_logdets)+sum(conv_logdets)+sum(nonlin_logdets)+sum(interpolation_logdets) 
         return y, total_log_det
 
     def inverse_transform(self, y):
         with torch.no_grad():
 
-            layer_out = y
-            if self.final_actnorm: layer_out = self.actnorm_layers[self.n_layers].inverse_transform(layer_out)
+            curr_y = y
+            for layer_id in range(len(self.k_list)-1, -1,-1):
+                curr_y = self.interpolation_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.nonlin_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.conv_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
+                for squeeze_i in range(self.squeeze_list[layer_id]): curr_y = self.squeeze_layer.inverse_transform(curr_y)
 
-            for layer_id in list(range(len(self.k_list)))[::-1]:
-                if layer_id != self.n_layers-1 and len(self.nonlin_layers) > 0:
-                    conv_out = self.nonlin_layers[layer_id].inverse_transform(layer_out)
-                else:
-                    conv_out = layer_out
-
-                actnorm_out = self.conv_layers[layer_id].inverse_transform(conv_out)
-                layer_in = self.actnorm_layers[layer_id].inverse_transform(actnorm_out)
-
-                for squeeze_i in range(self.squeeze_list[layer_id]):
-                    layer_in = self.squeeze_layer.inverse_transform(layer_in)
-                layer_out = layer_in
-
-            x = layer_in
+            x = curr_y
             x = x+0.5   
             return x
 
