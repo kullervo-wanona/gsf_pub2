@@ -31,7 +31,8 @@ class GenerativeSchurFlow(torch.nn.Module):
         print('\n**********************************************************')
         print('Creating GenerativeSchurFlow: ')
         print('**********************************************************\n')
-        actnorm_layers, conv_layers, interpolation_layers, nonlin_layers = [], [], [], []
+        actnorm_layers, pre_interpolation_layers, pre_nonlin_layers = [], [], [] 
+        conv_layers, interpolation_layers, nonlin_layers = [], [], []
 
         accum_squeeze = 0
         for layer_id in range(self.n_layers):
@@ -44,18 +45,23 @@ class GenerativeSchurFlow(torch.nn.Module):
 
             actnorm_layers.append(Actnorm(curr_c, curr_n, name=str(layer_id)))
 
+            pre_interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
+            
+            pre_nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+
             conv_layers.append(MultiChannel2DCircularConv(
                 curr_c, curr_n, curr_k, kernel_init='I + he_uniform', 
                 bias_mode='spatial', scale_mode='no-scale', name=str(layer_id)))
 
-            # nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
-            # nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
             interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
 
         self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
+        self.pre_interpolation_layers = torch.nn.ModuleList(pre_interpolation_layers)
+        self.pre_nonlin_layers = torch.nn.ModuleList(pre_nonlin_layers)
         self.conv_layers = torch.nn.ModuleList(conv_layers)
-        # self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
+        self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
         self.interpolation_layers = torch.nn.ModuleList(interpolation_layers)
         self.squeeze_layer = Squeeze()
 
@@ -208,7 +214,8 @@ class GenerativeSchurFlow(torch.nn.Module):
     ################################################################################################
 
     def transform_with_logdet(self, x, initialization=False):
-        actnorm_logdets, conv_logdets, nonlin_logdets, interpolation_logdets = [], [], [], []
+        actnorm_logdets, pre_interpolation_logdets, pre_nonlin_logdets = [], [], []
+        conv_logdets, interpolation_logdets, nonlin_logdets = [], [], []
 
         x = x-0.5
         curr_y = x
@@ -216,22 +223,30 @@ class GenerativeSchurFlow(torch.nn.Module):
             for squeeze_i in range(self.squeeze_list[layer_id]): curr_y, _ = self.squeeze_layer.transform_with_logdet(curr_y)
 
             curr_y, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(curr_y)
+            actnorm_logdets.append(actnorm_logdet)
+
             if initialization and not self.actnorm_layers[layer_id].initialized:
                 return curr_y, self.actnorm_layers[layer_id]
-            actnorm_logdets.append(actnorm_logdet)
+
+            curr_y, pre_interpolation_logdet = self.pre_interpolation_layers[layer_id].transform_with_logdet(curr_y)
+            pre_interpolation_logdets.append(pre_interpolation_logdet)
+
+            curr_y, pre_nonlin_logdet = self.pre_nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            pre_nonlin_logdets.append(pre_nonlin_logdet)
 
             curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y)
             conv_logdets.append(conv_logdet)
 
-            # curr_y, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(curr_y)
-            # nonlin_logdets.append(nonlin_logdet)
-
+            curr_y, nonlin_logdet = self.nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            nonlin_logdets.append(nonlin_logdet)
+            
             curr_y, interpolation_logdet = self.interpolation_layers[layer_id].transform_with_logdet(curr_y)
             interpolation_logdets.append(interpolation_logdet)
 
         y = curr_y
-        total_log_det = sum(actnorm_logdets)+sum(conv_logdets)+sum(nonlin_logdets)+sum(interpolation_logdets) 
-        return y, total_log_det
+        total_logdet = sum(actnorm_logdets)+sum(pre_interpolation_logdets)+sum(pre_nonlin_logdets)+\
+                        sum(conv_logdets)+sum(nonlin_logdets)+sum(interpolation_logdets)
+        return y, total_logdet
 
     def inverse_transform(self, y):
         with torch.no_grad():
@@ -239,8 +254,10 @@ class GenerativeSchurFlow(torch.nn.Module):
             curr_y = y
             for layer_id in range(len(self.k_list)-1, -1,-1):
                 curr_y = self.interpolation_layers[layer_id].inverse_transform(curr_y)
-                # curr_y = self.nonlin_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.nonlin_layers[layer_id].inverse_transform(curr_y)
                 curr_y = self.conv_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.pre_nonlin_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.pre_interpolation_layers[layer_id].inverse_transform(curr_y)
                 curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
                 for squeeze_i in range(self.squeeze_list[layer_id]): curr_y = self.squeeze_layer.inverse_transform(curr_y)
 

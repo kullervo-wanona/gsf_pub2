@@ -44,13 +44,14 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[3, 3, 3, 3, 3, 3])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[20, 20, 20], squeeze_list=[0, 0, 0])
 
-flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[7]*20, squeeze_list=[0]*20)
+flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*10, squeeze_list=[0]*10)
+# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[7]*5+[5]*5+[3]*5, squeeze_list=[0]*5+[1]+[0]*4+[1]+[0]*4)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 # flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=10)
 # flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
-flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=30, test_normalization=False)
+flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=50, test_normalization=False)
 
 n_param = 0
 for name, e in flow_net.named_parameters():
@@ -64,7 +65,7 @@ for e in flow_net.parameters():
 print('Total number of parameters: ' + str(n_param))
 
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.95), eps=1e-08)
-optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08)
+optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.99), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)

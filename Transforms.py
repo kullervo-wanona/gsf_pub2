@@ -116,12 +116,6 @@ class MultiChannel2DCircularConv(torch.nn.Module):
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
             self.iden_kernel = helper.cuda(torch.tensor(iden_kernel_np, dtype=torch.float32))
 
-        # if self.kernel_init == 'I + he_uniform': 
-        #     _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
-        #     kernel_np = iden_kernel_np + 0.1*rand_kernel_np 
-        # elif self.kernel_init == 'he_uniform': 
-        #     kernel_np = rand_kernel_np
-
         kernel_np = helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
         kernel_th = helper.cuda(torch.tensor(kernel_np, dtype=torch.float32))
         kernel_param = torch.nn.parameter.Parameter(data=kernel_th, requires_grad=True)
@@ -197,7 +191,7 @@ class AffineInterpolate(torch.nn.Module):
         self.c = c
 
         bias_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
-        pre_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+        pre_scale_th = helper.cuda(3.5*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
         bias_param = torch.nn.parameter.Parameter(data=bias_th, requires_grad=True)
         pre_scale_param = torch.nn.parameter.Parameter(data=pre_scale_th, requires_grad=True)
         setattr(self, 'bias', bias_param)
@@ -207,10 +201,9 @@ class AffineInterpolate(torch.nn.Module):
         bias = getattr(self, 'bias')
         pre_scale = getattr(self, 'pre_scale')
 
-        scale = torch.sigmoid(3.5+pre_scale)
+        scale = torch.sigmoid(pre_scale)
         affine_out = scale*affine_in+(1-scale)*bias
-        log_scale = torch.log(scale)
-        logdet = log_scale.sum(axis=[1, 2, 3])
+        logdet = torch.log(scale).sum(axis=[1, 2, 3])
         return affine_out, logdet
 
     def inverse_transform(self, affine_out):
@@ -218,7 +211,7 @@ class AffineInterpolate(torch.nn.Module):
             bias = getattr(self, 'bias')
             pre_scale = getattr(self, 'pre_scale')
 
-            scale = torch.sigmoid(3.5+pre_scale)
+            scale = torch.sigmoid(pre_scale)
             affine_in = (affine_out-(1-scale)*bias)/(scale+1e-6)            
             return affine_in
 
@@ -356,25 +349,57 @@ class SLogGate(torch.nn.Module):
         self.mode = mode
 
         if self.mode == 'spatial': 
-            log_alpha_th = helper.cuda((-2.99)*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+            pre_alpha_th = helper.cuda(-4*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
         elif self.mode == 'non-spatial':
-            log_alpha_th = helper.cuda((-2.99)*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
-        log_alpha_param = torch.nn.parameter.Parameter(data=log_alpha_th, requires_grad=True)
-        setattr(self, 'log_alpha', log_alpha_param)
+            pre_alpha_th = helper.cuda(-4*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+        pre_alpha_param = torch.nn.parameter.Parameter(data=pre_alpha_th, requires_grad=True)
+        setattr(self, 'pre_alpha', pre_alpha_param)
 
     def transform_with_logdet(self, nonlin_in):
-        log_alpha = getattr(self, 'log_alpha')
-        alpha = torch.exp(log_alpha)
+        pre_alpha = getattr(self, 'pre_alpha')
+        alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+
         nonlin_out = (torch.sign(nonlin_in)/alpha)*torch.log(1+alpha*torch.abs(nonlin_in))
         logdet = (-alpha*torch.abs(nonlin_out)).sum(axis=[1, 2, 3])
         return nonlin_out, logdet
 
     def inverse_transform(self, nonlin_out):
         with torch.no_grad():
-            log_alpha = getattr(self, 'log_alpha')
-            alpha = torch.exp(log_alpha)
+            pre_alpha = getattr(self, 'pre_alpha')
+            alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+
             nonlin_in = (torch.sign(nonlin_out)/alpha)*(torch.exp(alpha*torch.abs(nonlin_out))-1)
             return nonlin_in
+
+# class SLogGate(torch.nn.Module):
+#     def __init__(self, c, n, mode='non-spatial', name=''):
+#         super().__init__()
+#         assert (mode in ['non-spatial', 'spatial'])
+#         self.name = 'SLogGate_' + name
+#         self.n = n
+#         self.c = c
+#         self.mode = mode
+
+#         if self.mode == 'spatial': 
+#             log_alpha_th = helper.cuda((-2.99)*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+#         elif self.mode == 'non-spatial':
+#             log_alpha_th = helper.cuda((-2.99)*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+#         log_alpha_param = torch.nn.parameter.Parameter(data=log_alpha_th, requires_grad=True)
+#         setattr(self, 'log_alpha', log_alpha_param)
+
+#     def transform_with_logdet(self, nonlin_in):
+#         log_alpha = getattr(self, 'log_alpha')
+#         alpha = torch.exp(log_alpha)
+#         nonlin_out = (torch.sign(nonlin_in)/alpha)*torch.log(1+alpha*torch.abs(nonlin_in))
+#         logdet = (-alpha*torch.abs(nonlin_out)).sum(axis=[1, 2, 3])
+#         return nonlin_out, logdet
+
+#     def inverse_transform(self, nonlin_out):
+#         with torch.no_grad():
+#             log_alpha = getattr(self, 'log_alpha')
+#             alpha = torch.exp(log_alpha)
+#             nonlin_in = (torch.sign(nonlin_out)/alpha)*(torch.exp(alpha*torch.abs(nonlin_out))-1)
+#             return nonlin_in
 
 ########################################################################################################
 
