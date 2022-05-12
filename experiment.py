@@ -24,6 +24,8 @@ from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
 # from DataLoaders.CelebA.CelebA32Loader import DataLoader
+# from DataLoaders.CIFAR.Cifar10 import DataLoader
+# trace()
 
 train_data_loader = DataLoader(batch_size=20)
 train_data_loader.setup('Training', randomized=True, verbose=True)
@@ -66,13 +68,13 @@ for e in flow_net.parameters():
 print('Total number of parameters: ' + str(n_param))
 
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.95), eps=1e-08)
-optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)
+# optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.99), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0003, betas=(0.5, 0.9), eps=1e-08, weight_decay=5e-5)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.001, betas=(0.9, 0.9))
-# optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.99), eps=1e-08, weight_decay=5e-5)
+optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.999), eps=1e-08, weight_decay=5e-5)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.001, betas=(0,  0.5), eps=1e-08)
 # optimizer = torch.optim.RMSprop(flow_net.parameters(), lr=0.0001, alpha=0.9, eps=1e-08, weight_decay=0, momentum=0.5, centered=False)
 
@@ -85,8 +87,8 @@ for epoch in range(100000):
         optimizer.zero_grad() 
 
         z, x, logdet, log_pdf_z, log_pdf_x = flow_net(train_image)
-        train_loss = -torch.mean(logdet)-3*torch.mean(log_pdf_z)
-        # train_loss = -torch.mean(log_pdf_x)
+        # train_loss = -torch.mean(logdet)-2*torch.mean(log_pdf_z)
+        train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
         torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.25)

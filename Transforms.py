@@ -111,6 +111,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.kernel_init = kernel_init
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
+        self.conv_kernel_max_element = 4
 
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
@@ -146,7 +147,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 
         K = getattr(self, 'kernel')
         if self.kernel_init == 'I + he_uniform': 
-            K = 2*torch.tanh(K) + self.iden_kernel
+            K = self.conv_kernel_max_element*torch.tanh(K) + self.iden_kernel
 
         conv_out = spatial_conv2D_lib.spatial_circular_conv2D_th(conv_in, K)
         logdet = self.conv_kernel_to_logdet(K)
@@ -171,7 +172,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 
             K = getattr(self, 'kernel')
             if self.kernel_init == 'I + he_uniform': 
-                K = 2*torch.tanh(K) + self.iden_kernel
+                K = self.conv_kernel_max_element*torch.tanh(K) + self.iden_kernel
 
             conv_in = self.conv_inverse_func(conv_out, K)
 
@@ -317,7 +318,7 @@ class Tanh(torch.nn.Module):
 #             return nonlin_in
 
 class PReLU(torch.nn.Module):
-    def __init__(self, c, n, mode='non-spatial', slope_max=2, name=''):
+    def __init__(self, c, n, mode='non-spatial', slope_max=1.3, name=''):
         super().__init__()
         assert (mode in ['non-spatial', 'spatial'])
         assert (slope_max > 1)

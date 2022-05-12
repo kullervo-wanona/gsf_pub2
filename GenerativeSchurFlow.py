@@ -48,14 +48,16 @@ class GenerativeSchurFlow(torch.nn.Module):
             pre_interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
             
             # pre_nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
-            pre_nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            # pre_nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            pre_nonlin_layers.append(PReLU(curr_c, curr_n, mode='spatial', name=str(layer_id)))
 
             conv_layers.append(MultiChannel2DCircularConv(
                 curr_c, curr_n, curr_k, kernel_init='I + he_uniform', 
                 bias_mode='spatial', scale_mode='no-scale', name=str(layer_id)))
 
             # nonlin_layers.append(SLogGate(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
-            nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            # nonlin_layers.append(PReLU(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            nonlin_layers.append(PReLU(curr_c, curr_n, mode='spatial', name=str(layer_id)))
 
             interpolation_layers.append(AffineInterpolate(curr_c, curr_n, name=str(layer_id)))
 
