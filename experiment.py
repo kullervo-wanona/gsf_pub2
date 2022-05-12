@@ -45,6 +45,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[20, 20, 20], squeeze_list=[0, 0, 0])
 
 flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*10, squeeze_list=[0]*10)
+# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*5, squeeze_list=[0]*5)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[7]*5+[5]*5+[3]*5, squeeze_list=[0]*5+[1]+[0]*4+[1]+[0]*4)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
