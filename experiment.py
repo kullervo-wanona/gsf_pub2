@@ -44,8 +44,8 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[3, 3, 3, 3, 3, 3])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[20, 20, 20], squeeze_list=[0, 0, 0])
 
-flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*10, squeeze_list=[0]*10)
-# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*5, squeeze_list=[0]*5)
+# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*10, squeeze_list=[0]*10)
+flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10]*7, squeeze_list=[0]*7)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[7]*5+[5]*5+[3]*5, squeeze_list=[0]*5+[1]+[0]*4+[1]+[0]*4)
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
@@ -85,11 +85,11 @@ for epoch in range(100000):
         optimizer.zero_grad() 
 
         z, x, logdet, log_pdf_z, log_pdf_x = flow_net(train_image)
-        # train_loss = -torch.mean(logdet)-torch.mean(log_pdf_z)
-        train_loss = -torch.mean(log_pdf_x)
+        train_loss = -torch.mean(logdet)-3*torch.mean(log_pdf_z)
+        # train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.4)
+        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.25)
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 

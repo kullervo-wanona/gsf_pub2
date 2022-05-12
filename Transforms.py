@@ -265,33 +265,100 @@ class Tanh(torch.nn.Module):
 
 ########################################################################################################
 
+# class PReLU(torch.nn.Module):
+#     def __init__(self, c, n, mode='non-spatial', name=''):
+#         super().__init__()
+#         assert (mode in ['non-spatial', 'spatial'])
+#         self.name = 'PReLU_' + name
+#         self.n = n
+#         self.c = c
+#         self.mode = mode
+
+#         if self.mode == 'spatial': 
+#             pos_log_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+#             neg_log_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
+#             # neg_log_scale_th = helper.cuda(-1.609*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+#         elif self.mode == 'non-spatial': 
+#             pos_log_scale_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
+#             neg_log_scale_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
+#             # neg_log_scale_th = helper.cuda(-1.609*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+#         pos_log_scale_param = torch.nn.parameter.Parameter(data=pos_log_scale_th, requires_grad=True)
+#         neg_log_scale_param = torch.nn.parameter.Parameter(data=neg_log_scale_th, requires_grad=True)
+#         setattr(self, 'pos_log_scale', pos_log_scale_param)
+#         setattr(self, 'neg_log_scale', neg_log_scale_param)
+
+#     def transform_with_logdet(self, nonlin_in):
+#         pos_log_scale = getattr(self, 'pos_log_scale')
+#         neg_log_scale = getattr(self, 'neg_log_scale')
+#         pos_scale = torch.exp(pos_log_scale)
+#         neg_scale = torch.exp(neg_log_scale)
+
+#         x = nonlin_in
+#         x_pos = torch.relu(x)
+#         x_neg = x-x_pos
+#         x_ge_zero = x_pos/(x+1e-7)
+
+#         nonlin_out = pos_scale*x_pos+neg_scale*x_neg
+#         log_deriv = pos_log_scale*x_ge_zero+neg_log_scale*(1-x_ge_zero)
+#         logdet = log_deriv.sum(axis=[1, 2, 3])
+#         return nonlin_out, logdet
+
+#     def inverse_transform(self, nonlin_out):
+#         with torch.no_grad():
+#             pos_log_scale = getattr(self, 'pos_log_scale')
+#             neg_log_scale = getattr(self, 'neg_log_scale')
+#             pos_scale = torch.exp(pos_log_scale)
+#             neg_scale = torch.exp(neg_log_scale)
+
+#             y = nonlin_out
+#             y_pos = torch.relu(y)
+#             y_neg = y-y_pos
+#             nonlin_in = y_pos/(pos_scale+1e-6)+y_neg/(neg_scale+1e-6)
+#             return nonlin_in
+
 class PReLU(torch.nn.Module):
-    def __init__(self, c, n, mode='non-spatial', name=''):
+    def __init__(self, c, n, mode='non-spatial', slope_max=2, name=''):
         super().__init__()
         assert (mode in ['non-spatial', 'spatial'])
+        assert (slope_max > 1)
+
         self.name = 'PReLU_' + name
         self.n = n
         self.c = c
         self.mode = mode
+        self.slope_max = slope_max
+        self.slope_bias = 1/self.slope_max
+        self.slope_scale = (self.slope_max-self.slope_bias)
+        self.slope_logit_bias = -np.log(self.slope_max)
 
+        # if self.mode == 'spatial': 
+        #     pos_pre_scale_th = helper.cuda(-32*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+        #     neg_pre_scale_th = helper.cuda(100*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+        # elif self.mode == 'non-spatial': 
+        #     pos_pre_scale_th = helper.cuda(-32*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+        #     neg_pre_scale_th = helper.cuda(100*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
         if self.mode == 'spatial': 
-            pos_log_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
-            neg_log_scale_th = helper.cuda(torch.zeros((1, self.c, self.n, self.n), dtype=torch.float32))
-            # neg_log_scale_th = helper.cuda(-1.609*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+            pos_pre_scale_th = helper.cuda(0*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+            neg_pre_scale_th = helper.cuda(0*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
         elif self.mode == 'non-spatial': 
-            pos_log_scale_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
-            neg_log_scale_th = helper.cuda(torch.zeros((1, self.c, 1, 1), dtype=torch.float32))
-            # neg_log_scale_th = helper.cuda(-1.609*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
-        pos_log_scale_param = torch.nn.parameter.Parameter(data=pos_log_scale_th, requires_grad=True)
-        neg_log_scale_param = torch.nn.parameter.Parameter(data=neg_log_scale_th, requires_grad=True)
-        setattr(self, 'pos_log_scale', pos_log_scale_param)
-        setattr(self, 'neg_log_scale', neg_log_scale_param)
+            pos_pre_scale_th = helper.cuda(0*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+            neg_pre_scale_th = helper.cuda(0*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+        pos_pre_scale_param = torch.nn.parameter.Parameter(data=pos_pre_scale_th, requires_grad=True)
+        neg_pre_scale_param = torch.nn.parameter.Parameter(data=neg_pre_scale_th, requires_grad=True)
+        setattr(self, 'pos_pre_scale', pos_pre_scale_param)
+        setattr(self, 'neg_pre_scale', neg_pre_scale_param)        
+
+    def transform_slope(self, pre_slope):
+        slope = self.slope_bias+self.slope_scale*torch.sigmoid(pre_slope+self.slope_logit_bias)
+        return slope 
 
     def transform_with_logdet(self, nonlin_in):
-        pos_log_scale = getattr(self, 'pos_log_scale')
-        neg_log_scale = getattr(self, 'neg_log_scale')
-        pos_scale = torch.exp(pos_log_scale)
-        neg_scale = torch.exp(neg_log_scale)
+        pos_pre_scale = getattr(self, 'pos_pre_scale')
+        neg_pre_scale = getattr(self, 'neg_pre_scale')
+        pos_scale = self.transform_slope(pos_pre_scale)
+        neg_scale = self.transform_slope(neg_pre_scale)
+        pos_log_scale = torch.log(pos_scale)
+        neg_log_scale = torch.log(neg_scale)
 
         x = nonlin_in
         x_pos = torch.relu(x)
@@ -305,16 +372,17 @@ class PReLU(torch.nn.Module):
 
     def inverse_transform(self, nonlin_out):
         with torch.no_grad():
-            pos_log_scale = getattr(self, 'pos_log_scale')
-            neg_log_scale = getattr(self, 'neg_log_scale')
-            pos_scale = torch.exp(pos_log_scale)
-            neg_scale = torch.exp(neg_log_scale)
+            pos_pre_scale = getattr(self, 'pos_pre_scale')
+            neg_pre_scale = getattr(self, 'neg_pre_scale')
+            pos_scale = self.transform_slope(pos_pre_scale)
+            neg_scale = self.transform_slope(neg_pre_scale)
 
             y = nonlin_out
             y_pos = torch.relu(y)
             y_neg = y-y_pos
             nonlin_in = y_pos/(pos_scale+1e-6)+y_neg/(neg_scale+1e-6)
             return nonlin_in
+
 
 ########################################################################################################
 
@@ -357,7 +425,8 @@ class SLogGate(torch.nn.Module):
 
     def transform_with_logdet(self, nonlin_in):
         pre_alpha = getattr(self, 'pre_alpha')
-        alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+        # alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+        alpha = 0.01+1.6*torch.sigmoid(pre_alpha)
 
         nonlin_out = (torch.sign(nonlin_in)/alpha)*torch.log(1+alpha*torch.abs(nonlin_in))
         logdet = (-alpha*torch.abs(nonlin_out)).sum(axis=[1, 2, 3])
@@ -366,7 +435,8 @@ class SLogGate(torch.nn.Module):
     def inverse_transform(self, nonlin_out):
         with torch.no_grad():
             pre_alpha = getattr(self, 'pre_alpha')
-            alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+            # alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
+            alpha = 0.01+1.6*torch.sigmoid(pre_alpha)
 
             nonlin_in = (torch.sign(nonlin_out)/alpha)*(torch.exp(alpha*torch.abs(nonlin_out))-1)
             return nonlin_in
