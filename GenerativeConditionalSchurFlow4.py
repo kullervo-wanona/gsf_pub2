@@ -474,9 +474,9 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
-            torch.nn.Linear(c_in*n_in*n_in, c_out),
+            torch.nn.Linear(c_in*n_in*n_in, 2*c_out),
             torch.nn.ReLU(True),
-            torch.nn.Linear(c_out, c_out),
+            torch.nn.Linear(2*c_out, c_out),
             torch.nn.ReLU(True),
             # torch.nn.Tanh(),
             )
