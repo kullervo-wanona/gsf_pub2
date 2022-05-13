@@ -475,8 +475,10 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
             torch.nn.Linear(c_in*n_in*n_in, c_out),
-            # torch.nn.ReLU(True),
-            torch.nn.Tanh(),
+            torch.nn.ReLU(True),
+            torch.nn.Linear(c_out, c_out),
+            torch.nn.ReLU(True),
+            # torch.nn.Tanh(),
             )
         net = helper.cuda(net)
         # out = net(torch.rand((10, c_in, n_in, n_in)))
