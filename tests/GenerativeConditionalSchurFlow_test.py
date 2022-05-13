@@ -20,7 +20,8 @@ import torch
 import helper
 # from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
-from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
 
 from DataLoaders.CelebA.CelebA32Loader import DataLoader
 data_loader = DataLoader(batch_size=10)
@@ -30,6 +31,7 @@ _, _, example_batch = next(data_loader)
 c_in = 2
 n_in = 10
 flow_net = GenerativeConditionalSchurFlow(c_in=c_in, n_in=n_in, n_blocks=10)
+trace()
 flow_net.set_actnorm_parameters(data_loader, setup_mode='Training', n_batches=5, test_normalization=True, sub_image=[c_in, n_in, n_in])
 
 n_param = 0

@@ -89,7 +89,7 @@ class CondAffineInterpolate(torch.nn.Module):
             assert (bias.shape == self.parameter_sizes['bias'])
             assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
         
-        scale = torch.sigmoid(3+pre_scale)
+        scale = torch.sigmoid(pre_scale)
         affine_out = scale*affine_in+(1-scale)*bias
         log_scale = torch.log(scale)
         logdet = log_scale.sum(axis=[1, 2, 3])
@@ -101,7 +101,7 @@ class CondAffineInterpolate(torch.nn.Module):
                 assert (bias.shape == self.parameter_sizes['bias'])
                 assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
             
-            scale = torch.sigmoid(3+pre_scale)
+            scale = torch.sigmoid(pre_scale)
             affine_in = (affine_out-(1-scale)*bias)/(scale+1e-6)            
             return affine_in
 
