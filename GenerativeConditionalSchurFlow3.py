@@ -313,16 +313,16 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                                Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br')]   
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[min(self.n_in//2, 5)]*3, squeeze_list=[0]*3) for block_id in range(self.n_blocks)]
+            k_list=[min(self.n_in//2, 7)]*3, squeeze_list=[0]*3) for block_id in range(self.n_blocks)]
         self.update_cond_schur_transform_list = torch.nn.ModuleList(update_cond_schur_transform_list)
 
         base_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[min(self.n_in//2, 5)]*3, squeeze_list=[0]*3) for block_id in range(self.n_blocks)]
+            k_list=[min(self.n_in//2, 7)]*3, squeeze_list=[0]*3) for block_id in range(self.n_blocks)]
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
         main_cond_nets, spatial_cond_nets, non_spatial_cond_nets = [], [], []
         if self.cond_net_mode == 'FC':
-            self.main_cond_net_c_out = 1024
+            self.main_cond_net_c_out = 256
             for block_id in range(self.n_blocks):
                 main_cond_nets.append(self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.main_cond_net_c_out))
                 spatial_cond_nets.append(self.create_fc_spatial_cond_net(c_in=self.main_cond_net_c_out, n_out=self.n_in//2, c_out=self.update_cond_schur_transform_list[0].spatial_cond_param_shape[0]))
@@ -463,9 +463,9 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
-            torch.nn.Linear(c_in*n_in*n_in, 1024),
-            # torch.nn.ReLU(True),
-            torch.nn.Tanh(),
+            torch.nn.Linear(c_in*n_in*n_in, c_out),
+            torch.nn.ReLU(True),
+            # torch.nn.Tanh(),
             )
         net = helper.cuda(net)
         # out = net(torch.rand((10, c_in, n_in, n_in)))
