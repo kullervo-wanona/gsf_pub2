@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 import helper
-from Transforms import Actnorm, Squeeze, PReLU, SLogGate #, FixedSLogGate
+from Transforms import Actnorm, ActnormNoLearning, Squeeze, PReLU, SLogGate #, FixedSLogGate
 from ConditionalTransforms import CondMultiChannel2DCircularConv, CondAffine, CondAffineInterpolate #, CondPReLU, CondSLogGate
 
 class ConditionalSchurTransform(torch.nn.Module):
@@ -43,7 +43,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             print('Layer '+str(layer_id)+': c='+str(curr_c)+', n='+str(curr_n)+', k='+str(curr_k))
             assert (curr_n >= curr_k)
 
-            actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
+            actnorm_layers.append(ActnormNoLearning(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
             # pre_additive_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='no-scale', name='pre_additive_'+str(layer_id))
             # self.spatial_conditional_transforms[pre_additive_layer.name] = pre_additive_layer

@@ -484,6 +484,70 @@ class SLogGate(torch.nn.Module):
 
 ########################################################################################################
 
+class ActnormNoLearning(torch.nn.Module):
+    def __init__(self, c, n, mode='non-spatial', name=''):
+        super().__init__()
+        assert (mode in ['non-spatial', 'spatial'])
+        self.name = 'Actnorm_' + name
+        self.n = n
+        self.c = c
+        self.mode = mode
+        self.initialized = False
+
+        if self.mode == 'spatial': 
+            if TEST_MODE: temp_bias_th = helper.cuda(torch.rand([1, self.c, self.n, self.n], dtype=torch.float32))
+            else: temp_bias_th = helper.cuda(torch.zeros([1, self.c, self.n, self.n], dtype=torch.float32))
+        elif self.mode == 'non-spatial': 
+            if TEST_MODE: temp_bias_th = helper.cuda(torch.rand([1, self.c, 1, 1], dtype=torch.float32))
+            else: temp_bias_th = helper.cuda(torch.zeros([1, self.c, 1, 1], dtype=torch.float32))
+        setattr(self, 'bias', temp_bias_th)
+
+        if self.mode == 'spatial': 
+            if TEST_MODE: temp_log_scale_th = helper.cuda(torch.rand([1, self.c, self.n, self.n], dtype=torch.float32))
+            else: temp_log_scale_th = helper.cuda(torch.zeros([1, self.c, self.n, self.n], dtype=torch.float32))
+        elif self.mode == 'non-spatial': 
+            if TEST_MODE: temp_log_scale_th = helper.cuda(torch.rand([1, self.c, 1, 1], dtype=torch.float32))
+            else: temp_log_scale_th = helper.cuda(torch.zeros([1, self.c, 1, 1], dtype=torch.float32))
+        setattr(self, 'log_scale', temp_log_scale_th)
+
+    def set_parameters(self, bias_np, log_scale_np):
+        if self.mode == 'spatial': 
+            assert (bias_np.shape == (1, self.c, self.n, self.n) and log_scale_np.shape == (1, self.c, self.n, self.n))
+        elif self.mode == 'non-spatial':
+            assert (bias_np.shape == (1, self.c, 1, 1) and log_scale_np.shape == (1, self.c, 1, 1))
+
+        bias_th = helper.cuda(torch.tensor(bias_np, dtype=torch.float32))
+        setattr(self, 'bias', bias_th)
+
+        log_scale_th = helper.cuda(torch.tensor(log_scale_np, dtype=torch.float32))
+        setattr(self, 'log_scale', log_scale_th)
+
+    def set_initialized(self):
+        self.initialized = True
+
+    def transform_with_logdet(self, actnorm_in):
+        bias = getattr(self, 'bias')
+        log_scale = getattr(self, 'log_scale')
+
+        scale = torch.exp(log_scale)
+        actnorm_out = actnorm_in*scale+bias
+
+        if self.mode == 'spatial': 
+            logdet = log_scale.sum()
+        elif self.mode == 'non-spatial':
+            logdet = (self.n*self.n)*log_scale.sum()
+        return actnorm_out, logdet
+
+    def inverse_transform(self, actnorm_out):
+        with torch.no_grad():
+            bias = getattr(self, 'bias')
+            log_scale = getattr(self, 'log_scale')
+
+            scale = torch.exp(log_scale)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+            return actnorm_in
+
+
 class Actnorm(torch.nn.Module):
     def __init__(self, c, n, mode='non-spatial', name=''):
         super().__init__()
