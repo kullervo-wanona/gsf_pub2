@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 import helper
-from Transforms import MultiChannel2DCircularConv, AffineInterpolate, Logit, Tanh, PReLU, FixedSLogGate, SLogGate, Actnorm, Squeeze
+from Transforms import MultiChannel2DCircularConv, AffineInterpolate, PReLU, SLogGate, Actnorm, Squeeze # Logit, Tanh, FixedSLogGate, , 
 
 class GenerativeSchurFlow(torch.nn.Module):
     def __init__(self, c_in, n_in, k_list, squeeze_list, final_actnorm=False):

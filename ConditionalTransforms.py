@@ -28,6 +28,7 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
         self.k = k
         self.bias_mode = bias_mode
         self.kernel_init = kernel_init
+        self.conv_kernel_max_diff = 1
 
         if self.kernel_init == 'I + net':
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
@@ -37,25 +38,27 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
         self.conv_batch_kernel_to_logdet = spectral_schur_det_lib.generate_batch_kernel_to_schur_log_determinant(self.k, self.n)
 
         self.parameter_sizes = {}
-        self.parameter_sizes['kernel'] = [-1, self.c, self.c, self.k, self.k]
+        self.parameter_sizes['pre_kernel'] = [-1, self.c, self.c, self.k, self.k]
         if self.bias_mode == 'non-spatial': self.parameter_sizes['bias'] = [-1, self.c, 1, 1]
         else: self.parameter_sizes['bias'] = None
 
-    def transform_with_logdet(self, conv_in, K, bias, check_sizes=False):
+    def transform_with_logdet(self, conv_in, pre_kernel, bias, check_sizes=False):
         if check_sizes: 
-            assert (K.shape[1:] == self.parameter_sizes['kernel'])
+            assert (K.shape[1:] == self.parameter_sizes['pre_kernel'])
             if self.bias_mode  == 'non-spatial': 
                 assert (bias.shape[1:] == self.parameter_sizes['bias'])
         
+        K = self.conv_kernel_max_diff*torch.tanh(pre_kernel)
+        # print('pre_kernel_max', pre_kernel.max())
+        # print('K_max', K.max())
         if self.kernel_init == 'I + net': K = K + self.iden_kernel[np.newaxis]
-
         conv_out = spatial_conv2D_lib.batch_spatial_circular_conv2D_th(conv_in, K)
-        if self.bias_mode  == 'non-spatial': conv_out = conv_out+bias
-
         logdet = self.conv_batch_kernel_to_logdet(K)
+
+        if self.bias_mode  == 'non-spatial': conv_out = conv_out+bias
         return conv_out, logdet
 
-    def inverse_transform(self, conv_out, K, bias, check_sizes=False):
+    def inverse_transform(self, conv_out, pre_kernel, bias, check_sizes=False):
         with torch.no_grad():
             if check_sizes: 
                 assert (K.shape == self.parameter_sizes['kernel'])
@@ -63,7 +66,8 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
                     assert (bias.shape == self.parameter_sizes['bias'])
             
             if self.bias_mode == 'non-spatial': conv_out = conv_out-bias
-    
+                
+            K = self.conv_kernel_max_diff*torch.tanh(pre_kernel)
             if self.kernel_init == 'I + net': K = K + self.iden_kernel[np.newaxis]
             conv_in = self.conv_batch_inverse_func(conv_out, K)
             return conv_in
@@ -86,7 +90,7 @@ class CondAffineInterpolate(torch.nn.Module):
             assert (bias.shape == self.parameter_sizes['bias'])
             assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
         
-        scale = torch.sigmoid(pre_scale)
+        scale = torch.sigmoid(3.5+pre_scale)
         affine_out = scale*affine_in+(1-scale)*bias
         log_scale = torch.log(scale)
         logdet = log_scale.sum(axis=[1, 2, 3])
@@ -98,7 +102,7 @@ class CondAffineInterpolate(torch.nn.Module):
                 assert (bias.shape == self.parameter_sizes['bias'])
                 assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
             
-            scale = torch.sigmoid(pre_scale)
+            scale = torch.sigmoid(3.5+pre_scale)
             affine_in = (affine_out-(1-scale)*bias)/(scale+1e-6)            
             return affine_in
 
