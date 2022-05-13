@@ -579,7 +579,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             image = helper.cuda(torch.from_numpy(image_np))
 
             actnorm_out, actnorm_object_mean = self.transform_with_logdet(image, initialization=True)
-            if type(actnorm_object_mean) is not Actnorm: return None, None, None, None, None
+            if type(actnorm_object_mean) is not Actnorm or type(actnorm_object_mean) is not ActnormNoLearning: return None, None, None, None, None
 
             actnorm_out = helper.to_numpy(actnorm_out)
             if actnorm_object_mean.mode == 'spatial': curr_mean = actnorm_out.sum(0)
@@ -603,7 +603,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             image = helper.cuda(torch.from_numpy(image_np))
 
             actnorm_out, actnorm_object_var = self.transform_with_logdet(image, initialization=True)
-            if type(actnorm_object_var) is not Actnorm: return None, None, None, None, None
+            if type(actnorm_object_var) is not Actnorm or type(actnorm_object_var) is not ActnormNoLearning: return None, None, None, None, None
 
             actnorm_out = helper.to_numpy(actnorm_out)
             if actnorm_object_var.mode == 'spatial': curr_var = ((actnorm_out-mean[np.newaxis, :, :, :])**2).sum(0)
@@ -688,11 +688,11 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
             non_spatial_param, spatial_param = self.base_cond_net_forward(curr_base, block_id)
             new_update, update_logdet = self.update_cond_schur_transform_list[block_id].transform_with_logdet(curr_update, non_spatial_param, spatial_param, initialization)
-            if type(update_logdet) is Actnorm: return new_update, update_logdet # init run unparameterized actnorm
+            if type(update_logdet) is Actnorm or type(update_logdet) is ActnormNoLearning: return new_update, update_logdet # init run unparameterized actnorm
 
             non_spatial_param, spatial_param = self.update_cond_net_forward(new_update, block_id)            
             new_base, base_logdet = self.base_cond_schur_transform_list[block_id].transform_with_logdet(curr_base, non_spatial_param, spatial_param, initialization)
-            if type(base_logdet) is Actnorm: return new_base, base_logdet # init run unparameterized actnorm
+            if type(base_logdet) is Actnorm or type(base_logdet) is ActnormNoLearning: return new_base, base_logdet # init run unparameterized actnorm
 
             curr_lodget = update_logdet+base_logdet
             all_logdets.append(curr_lodget)
