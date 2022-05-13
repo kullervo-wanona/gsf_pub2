@@ -309,10 +309,10 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
         self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.7])))
 
-        # self.squeeze_layers = [Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-br-tr-bl'), 
-        #                        Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br')]   
         self.squeeze_layers = [Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-br-tr-bl'), 
-                               Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-tr-bl-br')]   
+                               Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-br-tr-bl'), 
+                               Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-tr-bl-br')
+                               Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br')]   
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
             k_list=[4]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
@@ -680,7 +680,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         for block_id in range(self.n_blocks):
             # print('forward:', block_id)
 
-            layer_input_squeezed, _ = self.squeeze_layers[block_id % 2].transform_with_logdet(layer_input)
+            layer_input_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_input)
             curr_base, curr_update = layer_input_squeezed[:, :layer_input_squeezed.shape[1]//2], layer_input_squeezed[:, layer_input_squeezed.shape[1]//2:]
 
             non_spatial_param, spatial_param = self.base_cond_net_forward(curr_base, block_id)
@@ -695,7 +695,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             all_logdets.append(curr_lodget)
 
             layer_out_squeezed = torch.concat([new_base, new_update], axis=1)
-            layer_out = self.squeeze_layers[block_id % 2].inverse_transform(layer_out_squeezed)
+            layer_out = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_out_squeezed)
 
             layer_input = layer_out
 
@@ -709,7 +709,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             layer_out = z
             for block_id in range(self.n_blocks-1, -1, -1):
                 # print('inverting:', block_id)
-                layer_out_squeezed, _ = self.squeeze_layers[block_id % 2].transform_with_logdet(layer_out)
+                layer_out_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_out)
                 curr_base, curr_update = layer_out_squeezed[:, :layer_out_squeezed.shape[1]//2], layer_out_squeezed[:, layer_out_squeezed.shape[1]//2:]
 
                 non_spatial_param, spatial_param = self.update_cond_net_forward(curr_update, block_id)
@@ -719,7 +719,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                 old_update = self.update_cond_schur_transform_list[block_id].inverse_transform(curr_update, non_spatial_param, spatial_param)
                 
                 layer_input_squeezed = torch.concat([old_base, old_update], axis=1)
-                layer_input = self.squeeze_layers[block_id % 2].inverse_transform(layer_input_squeezed)
+                layer_input = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_input_squeezed)
                 layer_out = layer_input
 
             x = layer_input
