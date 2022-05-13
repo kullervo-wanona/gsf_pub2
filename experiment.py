@@ -92,7 +92,7 @@ for epoch in range(100000):
         train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1)
+        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 1)
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 

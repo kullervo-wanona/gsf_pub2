@@ -87,7 +87,7 @@ TEST_MODE = False
 #             if self.scale_mode in ['non-spatial', 'spatial']: 
 #                 log_scale = getattr(self, 'log_scale')
 #                 scale = torch.exp(log_scale)
-#                 conv_out = conv_out/(scale+1e-6)
+#                 conv_out = conv_out/(scale+1e-5)
 
 #             K = getattr(self, 'kernel')
 #             conv_in = self.conv_inverse_func(conv_out, K)
@@ -176,7 +176,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
             if self.scale_mode in ['non-spatial', 'spatial']: 
                 log_scale = getattr(self, 'log_scale')
                 scale = torch.exp(log_scale)
-                conv_out = conv_out/(scale+1e-6)
+                conv_out = conv_out/(scale+1e-5)
 
             if self.bias_mode in ['non-spatial', 'spatial']: 
                 bias = getattr(self, 'bias')
@@ -240,7 +240,7 @@ class AffineBounded(torch.nn.Module):
             pre_scale = getattr(self, 'pre_scale')
 
             scale = max_scale*torch.sigmoid(pre_scale)
-            actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-5)
             return actnorm_in
 
 class AffineInterpolate(torch.nn.Module):
@@ -275,7 +275,7 @@ class AffineInterpolate(torch.nn.Module):
             pre_scale = getattr(self, 'pre_scale')
 
             scale = torch.sigmoid(pre_scale)
-            affine_in = (affine_out-(1-scale)*bias)/(scale+1e-4)            
+            affine_in = (affine_out-(1-scale)*bias)/(scale+1e-5)            
             return affine_in
 
 # ########################################################################################################
@@ -376,7 +376,7 @@ class AffineInterpolate(torch.nn.Module):
 #             y = nonlin_out
 #             y_pos = torch.relu(y)
 #             y_neg = y-y_pos
-#             nonlin_in = y_pos/(pos_scale+1e-6)+y_neg/(neg_scale+1e-6)
+#             nonlin_in = y_pos/(pos_scale+1e-5)+y_neg/(neg_scale+1e-5)
 #             return nonlin_in
 
 class PReLU(torch.nn.Module):
@@ -441,7 +441,7 @@ class PReLU(torch.nn.Module):
             y = nonlin_out
             y_pos = torch.relu(y)
             y_neg = y-y_pos
-            nonlin_in = y_pos/(pos_scale+1e-6)+y_neg/(neg_scale+1e-6)
+            nonlin_in = y_pos/(pos_scale+1e-5)+y_neg/(neg_scale+1e-5)
             return nonlin_in
 
 
@@ -598,7 +598,7 @@ class ActnormNoLearning(torch.nn.Module):
             log_scale = getattr(self, 'log_scale')
 
             scale = torch.exp(log_scale)
-            actnorm_in = (actnorm_out-bias)/(scale+1e-4)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-5)
             return actnorm_in
 
 
@@ -664,7 +664,7 @@ class Actnorm(torch.nn.Module):
             log_scale = getattr(self, 'log_scale')
 
             scale = torch.exp(log_scale)
-            actnorm_in = (actnorm_out-bias)/(scale+1e-4)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-5)
             return actnorm_in
 
 ########################################################################################################
@@ -776,7 +776,7 @@ class Squeeze(torch.nn.Module):
 #             gamma = torch.exp(log_scale)
 
 #             scale = torch.exp(log_scale)
-#             actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+#             actnorm_in = (actnorm_out-bias)/(scale+1e-5)
 #             return actnorm_in
 
     
