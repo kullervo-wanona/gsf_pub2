@@ -22,6 +22,7 @@ from GenerativeSchurFlow import GenerativeSchurFlow
 # from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
 from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow5 import GenerativeConditionalSchurFlow
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
@@ -92,7 +93,7 @@ for epoch in range(100000):
         train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.5)
+        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.2)
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 
