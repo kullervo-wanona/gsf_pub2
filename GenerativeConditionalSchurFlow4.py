@@ -203,7 +203,6 @@ class ConditionalSchurTransform(torch.nn.Module):
         for layer_id, k in enumerate(self.k_list):
             for squeeze_i in range(self.squeeze_list[layer_id]): curr_y, _ = self.squeeze_layer.transform_with_logdet(curr_y)
 
-
             curr_y, actnorm_logdet = self.actnorm_layers[layer_id].transform_with_logdet(curr_y)
             if initialization and not self.actnorm_layers[layer_id].initialized: return curr_y, self.actnorm_layers[layer_id]
             actnorm_logdets.append(actnorm_logdet)
@@ -579,7 +578,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             image = helper.cuda(torch.from_numpy(image_np))
 
             actnorm_out, actnorm_object_mean = self.transform_with_logdet(image, initialization=True)
-            if type(actnorm_object_mean) is not Actnorm or type(actnorm_object_mean) is not ActnormNoLearning: return None, None, None, None, None
+            if type(actnorm_object_mean) is not Actnorm and type(actnorm_object_mean) is not ActnormNoLearning: return None, None, None, None, None
 
             actnorm_out = helper.to_numpy(actnorm_out)
             if actnorm_object_mean.mode == 'spatial': curr_mean = actnorm_out.sum(0)
@@ -603,7 +602,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             image = helper.cuda(torch.from_numpy(image_np))
 
             actnorm_out, actnorm_object_var = self.transform_with_logdet(image, initialization=True)
-            if type(actnorm_object_var) is not Actnorm or type(actnorm_object_var) is not ActnormNoLearning: return None, None, None, None, None
+            if type(actnorm_object_var) is not Actnorm and type(actnorm_object_var) is not ActnormNoLearning: return None, None, None, None, None
 
             actnorm_out = helper.to_numpy(actnorm_out)
             if actnorm_object_var.mode == 'spatial': curr_var = ((actnorm_out-mean[np.newaxis, :, :, :])**2).sum(0)
