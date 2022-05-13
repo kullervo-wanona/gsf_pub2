@@ -53,7 +53,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=3)
+flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=6)
 # flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 
@@ -96,7 +96,8 @@ for epoch in range(100000):
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 
-        if i % 200 == 0:
+        if i % 50 == 0:
+        # if i % 200 == 0:
             train_latent, _ = flow_net.transform_with_logdet(train_image)
             train_image_reconst = flow_net.inverse_transform(train_latent)
 

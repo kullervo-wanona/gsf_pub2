@@ -28,6 +28,7 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
         self.k = k
         self.bias_mode = bias_mode
         self.kernel_init = kernel_init
+        self.pre_conv_kernel_mult = 0.1
         self.conv_kernel_max_diff = 1
 
         if self.kernel_init == 'I + net':
@@ -48,7 +49,7 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
             if self.bias_mode  == 'non-spatial': 
                 assert (bias.shape[1:] == self.parameter_sizes['bias'])
         
-        K = self.conv_kernel_max_diff*torch.tanh(pre_kernel)
+        K = self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
         # print('pre_kernel_max', pre_kernel.max())
         # print('K_max', K.max())
         if self.kernel_init == 'I + net': K = K + self.iden_kernel[np.newaxis]
@@ -67,7 +68,7 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
             
             if self.bias_mode == 'non-spatial': conv_out = conv_out-bias
                 
-            K = self.conv_kernel_max_diff*torch.tanh(pre_kernel)
+            K = self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
             if self.kernel_init == 'I + net': K = K + self.iden_kernel[np.newaxis]
             conv_in = self.conv_batch_inverse_func(conv_out, K)
             return conv_in
