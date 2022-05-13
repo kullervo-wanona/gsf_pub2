@@ -21,8 +21,8 @@ from GenerativeSchurFlow import GenerativeSchurFlow
 # from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
-from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
-# from GenerativeConditionalSchurFlow5 import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow5 import GenerativeConditionalSchurFlow
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
