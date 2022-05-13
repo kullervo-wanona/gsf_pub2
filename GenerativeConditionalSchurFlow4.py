@@ -311,8 +311,8 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
         self.squeeze_layers = [Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-br-tr-bl'), 
                                Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-br-tr-bl'), 
-                               Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-tr-bl-br')
-                               Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br')]   
+                               Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-tr-bl-br'),
+                               Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br'),]   
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
             k_list=[4]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
