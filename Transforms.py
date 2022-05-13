@@ -191,6 +191,58 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 
 ########################################################################################################
 
+class AffineBounded(torch.nn.Module):
+    def __init__(self, c, n, mode='non-spatial', name=''):
+        super().__init__()
+        assert (mode in ['non-spatial', 'spatial'])
+        self.name = 'Actnorm_' + name
+        self.n = n
+        self.c = c
+        self.mode = mode
+        self.slope_max = slope_max
+        self.slope_bias = 1/self.slope_max
+        self.slope_scale = (self.slope_max-self.slope_bias)
+        self.slope_logit_bias = -np.log(self.slope_max)
+
+        if self.mode == 'spatial': 
+            if TEST_MODE: temp_bias_th = helper.cuda(torch.rand([1, self.c, self.n, self.n], dtype=torch.float32))
+            else: temp_bias_th = helper.cuda(torch.zeros([1, self.c, self.n, self.n], dtype=torch.float32))
+        elif self.mode == 'non-spatial': 
+            if TEST_MODE: temp_bias_th = helper.cuda(torch.rand([1, self.c, 1, 1], dtype=torch.float32))
+            else: temp_bias_th = helper.cuda(torch.zeros([1, self.c, 1, 1], dtype=torch.float32))
+        setattr(self, 'bias', temp_bias_th)
+
+        if self.mode == 'spatial': 
+            if TEST_MODE: temp_log_scale_th = helper.cuda(torch.rand([1, self.c, self.n, self.n], dtype=torch.float32))
+            else: temp_log_scale_th = helper.cuda(torch.zeros([1, self.c, self.n, self.n], dtype=torch.float32))
+        elif self.mode == 'non-spatial': 
+            if TEST_MODE: temp_log_scale_th = helper.cuda(torch.rand([1, self.c, 1, 1], dtype=torch.float32))
+            else: temp_log_scale_th = helper.cuda(torch.zeros([1, self.c, 1, 1], dtype=torch.float32))
+        setattr(self, 'log_scale', temp_log_scale_th)
+
+
+    def transform_with_logdet(self, actnorm_in):
+        bias = getattr(self, 'bias')
+        log_scale = getattr(self, 'log_scale')
+
+        scale = torch.exp(log_scale)
+        actnorm_out = actnorm_in*scale+bias
+
+        if self.mode == 'spatial': 
+            logdet = log_scale.sum()
+        elif self.mode == 'non-spatial':
+            logdet = (self.n*self.n)*log_scale.sum()
+        return actnorm_out, logdet
+
+    def inverse_transform(self, actnorm_out):
+        with torch.no_grad():
+            bias = getattr(self, 'bias')
+            pre_scale = getattr(self, 'pre_scale')
+
+            scale = max_scale*torch.sigmoid(pre_scale)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+            return actnorm_in
+
 class AffineInterpolate(torch.nn.Module):
     def __init__(self, c, n, name=''):
         super().__init__()
@@ -223,7 +275,7 @@ class AffineInterpolate(torch.nn.Module):
             pre_scale = getattr(self, 'pre_scale')
 
             scale = torch.sigmoid(pre_scale)
-            affine_in = (affine_out-(1-scale)*bias)/(scale+1e-6)            
+            affine_in = (affine_out-(1-scale)*bias)/(scale+1e-4)            
             return affine_in
 
 # ########################################################################################################
@@ -546,7 +598,7 @@ class ActnormNoLearning(torch.nn.Module):
             log_scale = getattr(self, 'log_scale')
 
             scale = torch.exp(log_scale)
-            actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-4)
             return actnorm_in
 
 
@@ -612,7 +664,7 @@ class Actnorm(torch.nn.Module):
             log_scale = getattr(self, 'log_scale')
 
             scale = torch.exp(log_scale)
-            actnorm_in = (actnorm_out-bias)/(scale+1e-6)
+            actnorm_in = (actnorm_out-bias)/(scale+1e-4)
             return actnorm_in
 
 ########################################################################################################
