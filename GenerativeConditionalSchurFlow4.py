@@ -259,10 +259,13 @@ class ConditionalSchurTransform(torch.nn.Module):
                 # curr_y = self.additive_layers[layer_id].inverse_transform(curr_y, additive_bias, additive_log_scale)
 
                 # curr_y = self.scaling_nonlin_layers[layer_id].inverse_transform(curr_y)
+                if torch.any(torch.isnan(curr_y)): trace()
 
                 curr_params = spatial_param_assignments[self.interpolation_layers[layer_id].name]
                 interpolation_bias, interpolation_pre_scale = curr_params["bias"], curr_params["pre_scale"]
                 curr_y = self.interpolation_layers[layer_id].inverse_transform(curr_y, interpolation_bias, interpolation_pre_scale)
+
+                if torch.any(torch.isnan(curr_y)): trace()
 
                 # curr_params = spatial_param_assignments[self.scaling_layers[layer_id].name]
                 # scaling_bias, scaling_log_scale =  curr_params["bias"], curr_params["log_scale"]
@@ -279,6 +282,7 @@ class ConditionalSchurTransform(torch.nn.Module):
                 # curr_y = self.pre_additive_layers[layer_id].inverse_transform(curr_y, pre_additive_bias, pre_additive_log_scale)
 
                 curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
+                if torch.any(torch.isnan(curr_y)): trace()
 
                 for squeeze_i in range(self.squeeze_list[layer_id]): curr_y = self.squeeze_layer.inverse_transform(curr_y)
 
