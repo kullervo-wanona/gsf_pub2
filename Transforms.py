@@ -517,10 +517,12 @@ class ActnormNoLearning(torch.nn.Module):
             assert (bias_np.shape == (1, self.c, 1, 1) and log_scale_np.shape == (1, self.c, 1, 1))
 
         bias_th = helper.cuda(torch.tensor(bias_np, dtype=torch.float32))
-        setattr(self, 'bias', bias_th)
+        bias_param = torch.nn.parameter.Parameter(data=bias_th, requires_grad=False)
+        setattr(self, 'bias', bias_param)
 
         log_scale_th = helper.cuda(torch.tensor(log_scale_np, dtype=torch.float32))
-        setattr(self, 'log_scale', log_scale_th)
+        log_scale_param = torch.nn.parameter.Parameter(data=log_scale_th, requires_grad=False)
+        setattr(self, 'log_scale', log_scale_param)
 
     def set_initialized(self):
         self.initialized = True
