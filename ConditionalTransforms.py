@@ -50,8 +50,6 @@ class CondMultiChannel2DCircularConv(torch.nn.Module):
                 assert (bias.shape[1:] == self.parameter_sizes['bias'])
         
         K = self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
-        # print('pre_kernel_max', pre_kernel.max())
-        # print('K_max', K.max())
         if self.kernel_init == 'I + net': K = K + self.iden_kernel[np.newaxis]
         conv_out = spatial_conv2D_lib.batch_spatial_circular_conv2D_th(conv_in, K)
         logdet = self.conv_batch_kernel_to_logdet(K)

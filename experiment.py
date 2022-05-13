@@ -20,7 +20,8 @@ import helper
 from GenerativeSchurFlow import GenerativeSchurFlow
 # from GenerativeConditionalSchurFlow import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
-from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
@@ -53,7 +54,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=6)
+flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=10)
 # flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 
@@ -92,7 +93,7 @@ for epoch in range(100000):
         train_loss = -torch.mean(log_pdf_x)
 
         train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.25)
+        # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.25)
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 
