@@ -56,7 +56,7 @@ n_in=train_data_loader.image_size[3]
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0])
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], squeeze_list=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_blocks=20)
-flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
+# flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=3, test_normalization=False)
 
 n_param = 0
 for name, e in flow_net.named_parameters():
@@ -124,6 +124,11 @@ for epoch in range(100000):
 
             helper.vis_samples_np(helper.cpu(image_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sample/', prefix='sample', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(image_sharper_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sharper_sample/', prefix='sharper_sample', resize=[256, 256])
+
+            if i % 1000 == 0:
+                test_all_z = flow_net.transform_all_layers(test_image)
+                for layer_id in range(len(test_all_z)):
+                    helper.vis_samples_np(helper.cpu(test_all_z[layer_id]).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/layers/layer_'+str(layer_id)+'_test/', prefix='real', resize=[256, 256])
 
             train_log_likelihood_z = mean_train_log_pdf_z.item()
             train_log_likelihood_x = mean_train_log_pdf_x.item()

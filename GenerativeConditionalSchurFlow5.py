@@ -731,6 +731,30 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             
             return x 
 
+    def transform_all_layers(self, x):
+        x = x - 0.5
+        layer_input = x
+        all_z = []
+        for block_id in range(self.n_blocks):
+
+            layer_input_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_input)
+            curr_base, curr_update = layer_input_squeezed[:, :layer_input_squeezed.shape[1]//2], layer_input_squeezed[:, layer_input_squeezed.shape[1]//2:]
+
+            non_spatial_param, spatial_param = self.base_cond_net_forward(curr_base, block_id)
+            new_update, update_logdet = self.update_cond_schur_transform_list[block_id].transform_with_logdet(curr_update, non_spatial_param, spatial_param)
+
+            non_spatial_param, spatial_param = self.update_cond_net_forward(new_update, block_id)            
+            new_base, base_logdet = self.base_cond_schur_transform_list[block_id].transform_with_logdet(curr_base, non_spatial_param, spatial_param)
+
+            layer_out_squeezed = torch.concat([new_base, new_update], axis=1)
+            layer_out = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_out_squeezed)
+
+            layer_input = layer_out
+            all_z.append(layer_out)
+        
+        return all_z
+
+
     def forward(self, x, dequantize=True):
         if dequantize: x = self.dequantize(x)
         z, logdet = self.transform_with_logdet(x)
