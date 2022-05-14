@@ -109,7 +109,7 @@ class CondAffineInterpolate(torch.nn.Module):
 ########################################################################################################
 
 class CondAffine(torch.nn.Module):
-    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=4, name=''):
+    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=8, name=''):
         super().__init__()
         assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
         assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])

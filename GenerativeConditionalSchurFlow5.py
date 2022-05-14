@@ -315,17 +315,17 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                                Squeeze(chan_mode='input_channels_adjacent', spatial_mode='tl-tr-bl-br'),]   
 
         update_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[4]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
+            k_list=[7]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
         self.update_cond_schur_transform_list = torch.nn.ModuleList(update_cond_schur_transform_list)
 
         base_cond_schur_transform_list = [ConditionalSchurTransform(c_in=self.c_in*4//2, n_in=self.n_in//2, 
-            k_list=[4]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
+            k_list=[7]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
         base_main_cond_nets, base_spatial_cond_nets, base_non_spatial_cond_nets = [], [], []
         update_main_cond_nets, update_spatial_cond_nets, update_non_spatial_cond_nets = [], [], []
         if self.cond_net_mode == 'FC':
-            self.main_cond_net_c_out = 256
+            self.main_cond_net_c_out = 512
             for block_id in range(self.n_blocks):
                 base_main_cond_nets.append(self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.main_cond_net_c_out))
                 base_spatial_cond_nets.append(self.create_fc_spatial_cond_net(c_in=self.main_cond_net_c_out, n_out=self.n_in//2, c_out=self.update_cond_schur_transform_list[0].spatial_cond_param_shape[0]))
