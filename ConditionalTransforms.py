@@ -9,6 +9,7 @@ else:
 import numpy as np
 import torch
 
+import scipy
 import helper
 import spectral_schur_det_lib
 from multi_channel_invertible_conv_lib import spatial_conv2D_lib
@@ -108,7 +109,7 @@ class CondAffineInterpolate(torch.nn.Module):
 ########################################################################################################
 
 class CondAffine(torch.nn.Module):
-    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', name=''):
+    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=2, name=''):
         super().__init__()
         assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
         assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])
@@ -119,29 +120,39 @@ class CondAffine(torch.nn.Module):
         self.c = c
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
-        self.parameter_sizes = {}
 
+        self.pre_scale_mult = 1
+        self.scale_max = scale_max
+        self.scale_bias = 1/self.scale_max
+        self.scale_scale = (self.scale_max-self.scale_bias)
+        self.scale_logit_bias = -np.log(self.scale_max)
+
+        self.parameter_sizes = {}
         self.parameter_sizes['bias'] = None
         if self.bias_mode == 'spatial':
             self.parameter_sizes['bias'] = [-1, self.c, self.n, self.n]
         elif self.bias_mode == 'non-spatial': 
             self.parameter_sizes['bias'] = [-1, self.c, 1, 1]
 
-        self.parameter_sizes['log_scale'] = None
+        self.parameter_sizes['pre_scale'] = None
         if self.scale_mode == 'spatial':
-            self.parameter_sizes['log_scale'] = [-1, self.c, self.n, self.n]
+            self.parameter_sizes['pre_scale'] = [-1, self.c, self.n, self.n]
         elif self.scale_mode == 'non-spatial': 
-            self.parameter_sizes['log_scale'] = [-1, self.c, 1, 1]
+            self.parameter_sizes['pre_scale'] = [-1, self.c, 1, 1]
 
-    def transform_with_logdet(self, affine_in, bias, log_scale, check_sizes=False):
+    def compute_scale(self, pre_scale):
+        scale = self.scale_bias+self.scale_scale*torch.sigmoid(self.pre_scale_mult*pre_scale+self.scale_logit_bias)
+        return scale 
+
+    def transform_with_logdet(self, affine_in, bias, pre_scale, check_sizes=False):
         if check_sizes: 
             if self.bias_mode != 'no-bias': 
                 assert (bias.shape == self.parameter_sizes['bias'])
             if self.scale_mode != 'no-scale': 
-                assert (log_scale.shape == self.parameter_sizes['log_scale'])
+                assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
         
         if self.scale_mode != 'no-scale': 
-            scale = torch.exp(log_scale)
+            scale = self.compute_scale(pre_scale)
 
         affine_out = affine_in
         if self.scale_mode != 'no-scale': 
@@ -151,27 +162,27 @@ class CondAffine(torch.nn.Module):
 
         logdet = 0
         if self.scale_mode == 'spatial': 
-            logdet = log_scale.sum(axis=[1, 2, 3])
+            logdet = torch.log(scale).sum(axis=[1, 2, 3])
         elif self.scale_mode == 'non-spatial':
-            logdet = (self.n*self.n)*log_scale.sum(axis=[1, 2, 3])
+            logdet = (self.n*self.n)*torch.log(scale).sum(axis=[1, 2, 3])
             
         return affine_out, logdet
 
-    def inverse_transform(self, affine_out, bias, log_scale, check_sizes=False):
+    def inverse_transform(self, affine_out, bias, pre_scale, check_sizes=False):
         with torch.no_grad():
             if check_sizes: 
                 if self.bias_mode != 'no-bias': 
                     assert (bias.shape == self.parameter_sizes['bias'])
                 if self.scale_mode != 'no-scale': 
-                    assert (log_scale.shape == self.parameter_sizes['log_scale'])
+                    assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
             
             if self.scale_mode != 'no-scale': 
-                scale = torch.exp(log_scale)
+                scale = self.compute_scale(pre_scale)
 
             if self.bias_mode != 'no-bias': 
                 affine_out = affine_out-bias
             if self.scale_mode != 'no-scale': 
-                affine_out = affine_out/(scale+1e-6)
+                affine_out = affine_out/(scale+1e-5)
             affine_in = affine_out 
             
             return affine_in
