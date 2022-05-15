@@ -46,7 +46,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             # actnorm_layers.append(ActnormNoLearning(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
             actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
-            pre_affine_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name='pre_affine_'+str(layer_id))
+            pre_affine_layer = CondAffine(curr_c, curr_n, bias_mode='non-spatial', scale_mode='spatial', name='pre_affine_'+str(layer_id))
             self.spatial_conditional_transforms[pre_affine_layer.name] = pre_affine_layer
             pre_affine_layers.append(pre_affine_layer)
 
@@ -71,7 +71,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             # scaling_nonlin_layers.append(SLogGate(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
             # scaling_nonlin_layers.append(PReLU(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
 
-            post_affine_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name='post_affine_'+str(layer_id))
+            post_affine_layer = CondAffine(curr_c, curr_n, bias_mode='non-spatial', scale_mode='spatial', name='post_affine_'+str(layer_id))
             self.spatial_conditional_transforms[post_affine_layer.name] = post_affine_layer
             post_affine_layers.append(post_affine_layer)
             
