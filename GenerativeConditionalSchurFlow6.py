@@ -166,7 +166,10 @@ class ConditionalSchurTransform(torch.nn.Module):
                         self.spatial_conditional_transforms[transform_name].parameter_sizes[param_name]))
                     if total_param_shape is None: total_param_shape = curr_param_shape
                     else:
-                        assert (total_param_shape[1:] == curr_param_shape[1:])
+                        try:
+                            assert (total_param_shape[1:] == curr_param_shape[1:])
+                        except:
+                            trace()
                         total_param_shape[0] += curr_param_shape[0]
         if total_param_shape is None: total_param_shape = [0, 0, 0]
         return total_param_shape, param_sizes_list
