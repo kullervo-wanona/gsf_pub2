@@ -50,8 +50,8 @@ class ConditionalSchurTransform(torch.nn.Module):
             self.spatial_conditional_transforms[pre_affine_layer.name] = pre_affine_layer
             pre_affine_layers.append(pre_affine_layer)
 
-            scaling_nonlin_layers.append(SLogGate(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
-            # scaling_nonlin_layers.append(PReLU(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
+            # scaling_nonlin_layers.append(SLogGate(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
+            # # scaling_nonlin_layers.append(PReLU(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
 
             conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, curr_k, kernel_init='I + net', bias_mode='non-spatial', name=str(layer_id))
             self.non_spatial_conditional_transforms[conv_layer.name] = conv_layer
@@ -215,8 +215,8 @@ class ConditionalSchurTransform(torch.nn.Module):
             curr_y, pre_affine_logdet = self.pre_affine_layers[layer_id].transform_with_logdet(curr_y, pre_affine_bias, pre_affine_pre_scale)
             pre_affine_logdets.append(pre_affine_logdet)
 
-            curr_y, scaling_nonlin_logdet = self.scaling_nonlin_layers[layer_id].transform_with_logdet(curr_y)
-            scaling_nonlin_logdets.append(scaling_nonlin_logdet)
+            # curr_y, scaling_nonlin_logdet = self.scaling_nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            # scaling_nonlin_logdets.append(scaling_nonlin_logdet)
 
             curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
             conv_pre_kernel, conv_bias = curr_params["pre_kernel"], curr_params["bias"]
@@ -274,7 +274,7 @@ class ConditionalSchurTransform(torch.nn.Module):
                 conv_pre_kernel, conv_bias = curr_params["pre_kernel"], curr_params["bias"]
                 curr_y = self.conv_layers[layer_id].inverse_transform(curr_y, conv_pre_kernel, conv_bias)
 
-                curr_y = self.scaling_nonlin_layers[layer_id].inverse_transform(curr_y)
+                # curr_y = self.scaling_nonlin_layers[layer_id].inverse_transform(curr_y)
 
                 curr_params = spatial_param_assignments[self.pre_affine_layers[layer_id].name]
                 pre_affine_bias, pre_affine_pre_scale = curr_params["bias"], curr_params["pre_scale"]
@@ -325,22 +325,23 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             k_list=[min(self.n_in//2, 5)]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
-        self.FC_main_cond_net_c_out = 512
-        base_main_cond_nets, base_spatial_cond_nets, base_non_spatial_cond_nets = [], [], []
-        update_main_cond_nets, update_spatial_cond_nets, update_non_spatial_cond_nets = [], [], []        
+        self.FC_main_cond_net_c_out = 1024
+        base_spatial_cond_nets, base_non_spatial_cond_nets = [], [], []
+        update_spatial_cond_nets, update_non_spatial_cond_nets = [], [], [] 
+
+        self.base_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
+        self.update_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         for block_id in range(self.n_blocks):
             if self.cond_net_mode == 'FC':
                 # print('Base net, block '+ str(block_id) +' spatial_cond_param_shape[0]: ' + str(self.update_cond_schur_transform_list[block_id].spatial_cond_param_shape[0]))
                 # print('Base net, block '+ str(block_id) +' non_spatial_n_cond_params: ' + str(self.update_cond_schur_transform_list[block_id].non_spatial_n_cond_params))
 
-                base_main_cond_nets.append(self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out))
                 base_spatial_cond_nets.append(self.create_fc_spatial_cond_net(c_in=self.FC_main_cond_net_c_out, n_out=self.n_in//2, c_out=self.update_cond_schur_transform_list[block_id].spatial_cond_param_shape[0]))
                 base_non_spatial_cond_nets.append(self.create_fc_non_spatial_cond_net(c_in=self.FC_main_cond_net_c_out, c_out=self.update_cond_schur_transform_list[block_id].non_spatial_n_cond_params))
 
                 # print('Update net, block '+ str(block_id) +' spatial_cond_param_shape[0]: ' + str(self.base_cond_schur_transform_list[block_id].spatial_cond_param_shape[0]))
                 # print('Update net, block '+ str(block_id) +' non_spatial_n_cond_params: ' + str(self.base_cond_schur_transform_list[block_id].non_spatial_n_cond_params))
 
-                update_main_cond_nets.append(self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out))
                 update_spatial_cond_nets.append(self.create_fc_spatial_cond_net(c_in=self.FC_main_cond_net_c_out, n_out=self.n_in//2, c_out=self.base_cond_schur_transform_list[block_id].spatial_cond_param_shape[0]))
                 update_non_spatial_cond_nets.append(self.create_fc_non_spatial_cond_net(c_in=self.FC_main_cond_net_c_out, c_out=self.base_cond_schur_transform_list[block_id].non_spatial_n_cond_params))
 
@@ -353,11 +354,9 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
                 self.non_spatial_cond_net = self.create_conv_non_spatial_cond_net(c_in=self.main_cond_net_c_out, n_in=(self.n_in//2), 
                     c_out=self.update_cond_schur_transform_list[0].non_spatial_n_cond_params)
         
-        self.base_main_cond_nets = torch.nn.ModuleList(base_main_cond_nets)
         self.base_spatial_cond_nets = torch.nn.ModuleList(base_spatial_cond_nets)
         self.base_non_spatial_cond_nets = torch.nn.ModuleList(base_non_spatial_cond_nets)
 
-        self.update_main_cond_nets = torch.nn.ModuleList(update_main_cond_nets)
         self.update_spatial_cond_nets = torch.nn.ModuleList(update_spatial_cond_nets)
         self.update_non_spatial_cond_nets = torch.nn.ModuleList(update_non_spatial_cond_nets)
 
@@ -483,10 +482,10 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     def create_fc_main_cond_net(self, c_in, n_in, c_out, channel_multiplier=8):
         net = torch.nn.Sequential(
             torch.nn.Flatten(),
-            torch.nn.Linear(c_in*n_in*n_in, 2*c_out),
-            torch.nn.LayerNorm(2*c_out),
+            torch.nn.Linear(c_in*n_in*n_in, c_out),
+            torch.nn.LayerNorm(c_out),
             torch.nn.ReLU(True),
-            torch.nn.Linear(2*c_out, c_out),
+            torch.nn.Linear(c_out, c_out),
             torch.nn.LayerNorm(c_out),
             torch.nn.ReLU(True),
             # torch.nn.Tanh(),
@@ -521,7 +520,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     ################################################################################################
 
     def base_cond_net_forward(self, x, block_id):
-        main_cond = self.base_main_cond_nets[block_id](x)
+        main_cond = self.base_main_cond_net(x)
         non_spatial_param = None
         if self.base_non_spatial_cond_nets[block_id] is not None: 
             non_spatial_param = self.base_non_spatial_cond_nets[block_id](main_cond)
@@ -531,7 +530,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         return non_spatial_param, spatial_param
 
     def update_cond_net_forward(self, x, block_id):
-        main_cond = self.update_main_cond_nets[block_id](x)
+        main_cond = self.update_main_cond_net(x)
         non_spatial_param = None
         if self.update_non_spatial_cond_nets[block_id] is not None: 
             non_spatial_param = self.update_non_spatial_cond_nets[block_id](main_cond)
