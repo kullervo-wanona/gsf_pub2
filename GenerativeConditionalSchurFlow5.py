@@ -732,28 +732,53 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             return x 
 
     def transform_all_layers(self, x):
-        x = x - 0.5
-        layer_input = x
-        all_z = []
-        for block_id in range(self.n_blocks):
+        with torch.no_grad():
+            all_z = [x]
+            x = x - 0.5
+            layer_input = x
+            for block_id in range(self.n_blocks):
 
-            layer_input_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_input)
-            curr_base, curr_update = layer_input_squeezed[:, :layer_input_squeezed.shape[1]//2], layer_input_squeezed[:, layer_input_squeezed.shape[1]//2:]
+                layer_input_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_input)
+                curr_base, curr_update = layer_input_squeezed[:, :layer_input_squeezed.shape[1]//2], layer_input_squeezed[:, layer_input_squeezed.shape[1]//2:]
 
-            non_spatial_param, spatial_param = self.base_cond_net_forward(curr_base, block_id)
-            new_update, update_logdet = self.update_cond_schur_transform_list[block_id].transform_with_logdet(curr_update, non_spatial_param, spatial_param)
+                non_spatial_param, spatial_param = self.base_cond_net_forward(curr_base, block_id)
+                new_update, update_logdet = self.update_cond_schur_transform_list[block_id].transform_with_logdet(curr_update, non_spatial_param, spatial_param)
 
-            non_spatial_param, spatial_param = self.update_cond_net_forward(new_update, block_id)            
-            new_base, base_logdet = self.base_cond_schur_transform_list[block_id].transform_with_logdet(curr_base, non_spatial_param, spatial_param)
+                non_spatial_param, spatial_param = self.update_cond_net_forward(new_update, block_id)            
+                new_base, base_logdet = self.base_cond_schur_transform_list[block_id].transform_with_logdet(curr_base, non_spatial_param, spatial_param)
 
-            layer_out_squeezed = torch.concat([new_base, new_update], axis=1)
-            layer_out = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_out_squeezed)
+                layer_out_squeezed = torch.concat([new_base, new_update], axis=1)
+                layer_out = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_out_squeezed)
 
-            layer_input = layer_out
-            all_z.append(layer_out)
-        
-        return all_z
+                layer_input = layer_out
+                all_z.append(layer_out)
 
+            return all_z
+
+    def inverse_transform_all_layers(self, z):
+        with torch.no_grad():
+
+            layer_out = z
+            all_z = [z]
+            for block_id in range(self.n_blocks-1, -1, -1):
+                layer_out_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_out)
+                curr_base, curr_update = layer_out_squeezed[:, :layer_out_squeezed.shape[1]//2], layer_out_squeezed[:, layer_out_squeezed.shape[1]//2:]
+
+                non_spatial_param, spatial_param = self.update_cond_net_forward(curr_update, block_id)
+                old_base = self.base_cond_schur_transform_list[block_id].inverse_transform(curr_base, non_spatial_param, spatial_param)
+
+                non_spatial_param, spatial_param = self.base_cond_net_forward(old_base, block_id)
+                old_update = self.update_cond_schur_transform_list[block_id].inverse_transform(curr_update, non_spatial_param, spatial_param)
+                
+                layer_input_squeezed = torch.concat([old_base, old_update], axis=1)
+                layer_input = self.squeeze_layers[block_id % len(self.squeeze_layers)].inverse_transform(layer_input_squeezed)
+                layer_out = layer_input
+                all_z.append(layer_out)
+
+            x = layer_input
+            x = x + 0.5
+            all_z[-1] = x
+            return all_z
 
     def forward(self, x, dequantize=True):
         if dequantize: x = self.dequantize(x)

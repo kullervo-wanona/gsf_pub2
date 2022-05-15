@@ -125,10 +125,14 @@ for epoch in range(100000):
             helper.vis_samples_np(helper.cpu(image_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sample/', prefix='sample', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(image_sharper_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sharper_sample/', prefix='sharper_sample', resize=[256, 256])
 
-            if i % 1000 == 0:
+            if i % 600 == 0:
                 test_all_z = flow_net.transform_all_layers(test_image)
                 for layer_id in range(len(test_all_z)):
                     helper.vis_samples_np(helper.cpu(test_all_z[layer_id]).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/layers/layer_'+str(layer_id)+'_test/', prefix='real', resize=[256, 256])
+                
+                test_rec = flow_net.inverse_transform_all_layers(test_all_z[-1])
+                for layer_id in range(len(test_rec)):
+                    helper.vis_samples_np(helper.cpu(test_rec[layer_id]).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/inverse_layers/inverse_layer_'+str(layer_id)+'_test/', prefix='real', resize=[256, 256])
 
             train_log_likelihood_z = mean_train_log_pdf_z.item()
             train_log_likelihood_x = mean_train_log_pdf_x.item()

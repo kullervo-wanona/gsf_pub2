@@ -101,8 +101,79 @@ def get_conv_initial_weight_kernel_np(kernel_shape, n_in_channels, n_out_channel
 
 
 
+def save_or_show_images(image_mat, path=None):
+    assert (len(image_mat.shape) in [2, 3])
 
+    if image_mat.dtype != np.uint8:
+        assert (image_mat.min() >= 0 and image_mat.max() <= 1)
+        image_mat = (image_mat*255.).astype('uint8')
 
+    if len(image_mat.shape) == 2:
+        image_object = Image.fromarray(image_mat, mode='L')
+    else:
+        assert (image_mat.shape[2] in [1, 3, 4])
+        if image_mat.shape[2] == 1:
+            image_object = Image.fromarray(image_mat[:, :, 0], mode='L')
+        elif image_mat.shape[2] == 3:
+            image_object = Image.fromarray(image_mat, mode='RGB')
+        elif image_mat.shape[2] == 4:
+            image_object = Image.fromarray(image_mat, mode='RGBA')
+        
+    if path is None: image_object.show()
+    else: image_object.save(path)
+    
+def visualize_image_matrix(tensor_np, block_size=None, max_rows=None, padding=[4, 4], save_path_list=None, verbosity_level=4):
+    assert (len(tensor_np.shape) == 4 or len(tensor_np.shape) == 5)
+    assert (tensor_np.shape[-1] == 1 or tensor_np.shape[-1] == 3)
+    image_size = list(tensor_np.shape[-3:])
+
+    if block_size is not None:
+        if len(tensor_np.shape) == 4:
+            assert(tensor_np.shape[0] == np.prod(block_size))
+            tensor_np = tensor_np.reshape(block_size+image_size)
+        elif len(tensor_np.shape) == 5:
+            assert (np.prod(tensor_np.shape[:2]) == np.prod(block_size))
+            if tensor_np.shape[:2] != block_size:
+                tensor_np = tensor_np.reshape(block_size+image_size)
+    else:
+        if len(tensor_np.shape) == 4:
+            batch_size_sqrt_floor = int(np.floor(np.sqrt(tensor_np.shape[0])))
+            block_size = [batch_size_sqrt_floor, batch_size_sqrt_floor]
+            tensor_np = tensor_np[:np.prod(block_size), ...].reshape(block_size+image_size)
+        elif len(tensor_np.shape) == 5:
+            block_size = tensor_np.shape[:2]
+
+    if max_rows is None: max_rows = tensor_np.shape[0]    
+    canvas = np.ones([image_size[0]*min(block_size[0], max_rows)+ padding[0]*(min(block_size[0], max_rows)+1), 
+                      image_size[1]*block_size[1]+ padding[1]*(block_size[1]+1), image_size[2]])
+    for i in range(min(block_size[0], max_rows)):
+        start_coor = padding[0] + i*(image_size[0]+padding[0])
+        for t in range(block_size[1]):
+            y_start = (t+1)*padding[1]+t*image_size[1]
+            canvas[start_coor:start_coor+image_size[0], y_start:y_start+image_size[1], :] =  tensor_np[i][t]
+    if canvas.shape[2] == 1: canvas = np.repeat(canvas, 3, axis=2)
+
+    if np.isnan(canvas).any(): 
+        print('\n\n\nWarning: The image matrix contains values that are NaNs.\n\n\n')
+
+    if (canvas.min() < 0) or (canvas.max() > 1):
+        print('\n\n\nWarning: The image matrix contains values outside of the range [0, 1].')
+        print('Canvas ranges: ['+str(canvas.min())+', '+str(canvas.max())+']')
+        print('Clipping the image matrix values to [0, 1].\n\n\n')
+        canvas = np.clip(canvas, 0., 1.)
+
+    full_save_path_list = []
+    if save_path_list is None:
+        save_or_show_images(canvas)
+    else:
+        for path in save_path_list:
+            path_dir = path[:-((path[::-1]).find('/'))]
+            if not os.path.exists(path_dir): os.makedirs(path_dir)
+            full_path = path+'_ImageMatrix.png'
+            save_or_show_images(canvas, full_path)
+            full_save_path_list.append(full_path)
+
+    return full_save_path_list
 
 
 
