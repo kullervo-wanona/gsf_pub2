@@ -46,7 +46,7 @@ class ConditionalSchurTransform(torch.nn.Module):
             # actnorm_layers.append(ActnormNoLearning(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
             actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
-            pre_affine_layer = CondAffine(curr_c, curr_n, bias_mode='non-spatial', scale_mode='spatial', name='pre_affine_'+str(layer_id))
+            pre_affine_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='non-spatial', name='pre_affine_'+str(layer_id))
             self.spatial_conditional_transforms[pre_affine_layer.name] = pre_affine_layer
             pre_affine_layers.append(pre_affine_layer)
 
