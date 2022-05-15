@@ -22,7 +22,8 @@ from GenerativeSchurFlow import GenerativeSchurFlow
 # from GenerativeConditionalSchurFlow2 import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow3 import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow4 import GenerativeConditionalSchurFlow
-from GenerativeConditionalSchurFlow5 import GenerativeConditionalSchurFlow
+# from GenerativeConditionalSchurFlow5 import GenerativeConditionalSchurFlow
+from GenerativeConditionalSchurFlow6 import GenerativeConditionalSchurFlow
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
@@ -97,7 +98,6 @@ for epoch in range(100000):
         # torch.nn.utils.clip_grad_norm_(flow_net.parameters(), 0.1) # worked
         optimizer.step()
 
-        # if i % 50 == 0:
         if i % 200 == 0:
             train_latent, _ = flow_net.transform_with_logdet(train_image)
             train_image_reconst = flow_net.inverse_transform(train_latent)
@@ -125,7 +125,7 @@ for epoch in range(100000):
             helper.vis_samples_np(helper.cpu(image_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sample/', prefix='sample', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(image_sharper_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sharper_sample/', prefix='sharper_sample', resize=[256, 256])
 
-            if i % 600 == 0:
+            if i % 1000 == 0:
                 test_all_z = flow_net.transform_all_layers(test_image)
                 for layer_id in range(len(test_all_z)):
                     helper.vis_samples_np(helper.cpu(test_all_z[layer_id]).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/layers/layer_'+str(layer_id)+'_test/', prefix='real', resize=[256, 256])

@@ -479,16 +479,15 @@ class SLogGate(torch.nn.Module):
 
         if self.mode == 'spatial': 
             if TEST_MODE: pre_alpha_th = helper.cuda(torch.rand((1, self.c, self.n, self.n), dtype=torch.float32))
-            else: pre_alpha_th = helper.cuda(-4*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
+            else: pre_alpha_th = helper.cuda(-3*torch.ones((1, self.c, self.n, self.n), dtype=torch.float32))
         elif self.mode == 'non-spatial':
             if TEST_MODE: pre_alpha_th = helper.cuda(torch.rand((1, self.c, 1, 1), dtype=torch.float32))
-            else: pre_alpha_th = helper.cuda(-4*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
+            else: pre_alpha_th = helper.cuda(-3*torch.ones((1, self.c, 1, 1), dtype=torch.float32))
         pre_alpha_param = torch.nn.parameter.Parameter(data=pre_alpha_th, requires_grad=True)
         setattr(self, 'pre_alpha', pre_alpha_param)
 
     def transform_with_logdet(self, nonlin_in):
         pre_alpha = getattr(self, 'pre_alpha')
-        # alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
         alpha = 0.01+1.6*torch.sigmoid(pre_alpha)
 
         nonlin_out = (torch.sign(nonlin_in)/alpha)*torch.log(1+alpha*torch.abs(nonlin_in))
@@ -498,7 +497,6 @@ class SLogGate(torch.nn.Module):
     def inverse_transform(self, nonlin_out):
         with torch.no_grad():
             pre_alpha = getattr(self, 'pre_alpha')
-            # alpha = 0.01+2.2*torch.sigmoid(pre_alpha)
             alpha = 0.01+1.6*torch.sigmoid(pre_alpha)
 
             nonlin_in = (torch.sign(nonlin_out)/alpha)*(torch.exp(alpha*torch.abs(nonlin_out))-1)
