@@ -81,7 +81,7 @@ class ConditionalSchurTransform(torch.nn.Module):
         # self.conv_nonlin_layers = torch.nn.ModuleList(conv_nonlin_layers)
         # self.scaling_layers = torch.nn.ModuleList(scaling_layers)
         # self.interpolation_layers = torch.nn.ModuleList(interpolation_layers)
-        self.scaling_nonlin_layers = torch.nn.ModuleList(scaling_nonlin_layers)
+        # self.scaling_nonlin_layers = torch.nn.ModuleList(scaling_nonlin_layers)
         self.post_affine_layers = torch.nn.ModuleList(post_affine_layers)
 
         self.squeeze_layer = Squeeze()        
@@ -325,10 +325,10 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
             k_list=[min(self.n_in//2, 5)]*1, squeeze_list=[0]*1) for block_id in range(self.n_blocks)]
         self.base_cond_schur_transform_list = torch.nn.ModuleList(base_cond_schur_transform_list)
 
-        self.FC_main_cond_net_c_out = 1024
-        base_spatial_cond_nets, base_non_spatial_cond_nets = [], [], []
-        update_spatial_cond_nets, update_non_spatial_cond_nets = [], [], [] 
+        base_spatial_cond_nets, base_non_spatial_cond_nets = [], []
+        update_spatial_cond_nets, update_non_spatial_cond_nets = [], []
 
+        self.FC_main_cond_net_c_out = 1024
         self.base_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         self.update_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         for block_id in range(self.n_blocks):
