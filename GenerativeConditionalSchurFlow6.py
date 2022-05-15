@@ -328,7 +328,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         base_spatial_cond_nets, base_non_spatial_cond_nets = [], []
         update_spatial_cond_nets, update_non_spatial_cond_nets = [], []
 
-        self.FC_main_cond_net_c_out = 1024
+        self.FC_main_cond_net_c_out = 512
         self.base_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         self.update_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         for block_id in range(self.n_blocks):
