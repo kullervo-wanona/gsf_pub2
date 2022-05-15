@@ -488,7 +488,7 @@ class SLogGate(torch.nn.Module):
 
     def transform_with_logdet(self, nonlin_in):
         pre_alpha = getattr(self, 'pre_alpha')
-        alpha = 0.001+0.05*torch.sigmoid(pre_alpha)
+        alpha = 0.001+0.1*torch.sigmoid(pre_alpha)
 
         nonlin_out = (torch.sign(nonlin_in)/alpha)*(torch.log(alpha)+torch.log(1/alpha+torch.abs(nonlin_in)))
         logdet = (-alpha*torch.abs(nonlin_out)).sum(axis=[1, 2, 3])
@@ -497,7 +497,7 @@ class SLogGate(torch.nn.Module):
     def inverse_transform(self, nonlin_out):
         with torch.no_grad():
             pre_alpha = getattr(self, 'pre_alpha')
-            alpha = 0.001+0.05*torch.sigmoid(pre_alpha)
+            alpha = 0.001+0.1*torch.sigmoid(pre_alpha)
 
             nonlin_in = (torch.sign(nonlin_out)/alpha)*(torch.exp(alpha*torch.abs(nonlin_out))-1)
 
