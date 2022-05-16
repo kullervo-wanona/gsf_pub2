@@ -53,8 +53,8 @@ class ConditionalSchurTransform(torch.nn.Module):
             # scaling_nonlin_layers.append(SLogGate(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
             scaling_nonlin_layers.append(PReLU(curr_c, curr_n, name='scaling_nonlin_'+str(layer_id)))
 
-            conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, curr_k, kernel_init='net', bias_mode='non-spatial', name=str(layer_id))
-            # conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, curr_k, kernel_init='I + net', bias_mode='non-spatial', name=str(layer_id))
+            # conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, curr_k, kernel_init='net', bias_mode='non-spatial', name=str(layer_id))
+            conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, curr_k, kernel_init='I + net', bias_mode='non-spatial', name=str(layer_id))
             self.non_spatial_conditional_transforms[conv_layer.name] = conv_layer
             conv_layers.append(conv_layer)
 
