@@ -27,8 +27,8 @@ from GenerativeConditionalSchurFlow6 import GenerativeConditionalSchurFlow
 # from GenerativeConditionalSchurFlow7 import GenerativeConditionalSchurFlow
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
-from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
-# from DataLoaders.CelebA.CelebA32Loader import DataLoader
+# from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
+from DataLoaders.CelebA.CelebA32Loader import DataLoader
 # from DataLoaders.CIFAR.Cifar10 import DataLoader
 # trace()
 
