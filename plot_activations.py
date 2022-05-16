@@ -17,6 +17,7 @@ import glob
 main_dir = '/Volumes/GoogleDrive/My Drive/CollabResources/ExperimentalResults/samples_from_schur/'
 layer_dirs = glob.glob(main_dir+'layers/layer_*')
 image_ind_list = [3, 4, 5, 6, 7]
+# image_ind_list = [0, 1, 2, 3, 4]
 
 n_layers = len(layer_dirs)
 n_samples = len(image_ind_list)

@@ -334,8 +334,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         update_spatial_cond_nets, update_non_spatial_cond_nets = [], []
 
         self.FC_main_cond_net_c_out = 512
-        self.base_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
-        self.update_main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
+        self.main_cond_net = self.create_fc_main_cond_net(c_in=(self.c_in*4//2), n_in=self.n_in//2, c_out=self.FC_main_cond_net_c_out)
         for block_id in range(self.n_blocks):
             if self.cond_net_mode == 'FC':
                 # print('Base net, block '+ str(block_id) +' spatial_cond_param_shape[0]: ' + str(self.update_cond_schur_transform_list[block_id].spatial_cond_param_shape[0]))
@@ -525,7 +524,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     ################################################################################################
 
     def base_cond_net_forward(self, x, block_id):
-        main_cond = self.base_main_cond_net(x)
+        main_cond = self.main_cond_net(x)
         non_spatial_param = None
         if self.base_non_spatial_cond_nets[block_id] is not None: 
             non_spatial_param = self.base_non_spatial_cond_nets[block_id](main_cond)
@@ -535,7 +534,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
         return non_spatial_param, spatial_param
 
     def update_cond_net_forward(self, x, block_id):
-        main_cond = self.update_main_cond_net(x)
+        main_cond = self.main_cond_net(x)
         non_spatial_param = None
         if self.update_non_spatial_cond_nets[block_id] is not None: 
             non_spatial_param = self.update_non_spatial_cond_nets[block_id](main_cond)
