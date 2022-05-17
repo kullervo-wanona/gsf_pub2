@@ -18,7 +18,8 @@ import numpy as np
 import torch
 
 import helper
-from GenerativeSchurFlow2 import GenerativeSchurFlow
+# from GenerativeSchurFlow2 import GenerativeSchurFlow
+from GenerativeSchurFlow3 import GenerativeSchurFlow
 
 from DataLoaders.CelebA.CelebA32Loader import DataLoader
 data_loader = DataLoader(batch_size=10)
@@ -27,6 +28,7 @@ _, _, example_batch = next(data_loader)
 
 c_in = 3
 n_in = 16
+# flow_net = GenerativeSchurFlow(c_in=c_in, n_in=n_in, k_list=[3, 4, 4], squeeze_list=[0, 1, 0])
 flow_net = GenerativeSchurFlow(c_in=c_in, n_in=n_in, k_list=[3, 4, 4], squeeze_list=[0, 1, 0])
 flow_net.set_actnorm_parameters(data_loader, setup_mode='Training', n_batches=10, 
     test_normalization=True, sub_image=[c_in, n_in, n_in])
