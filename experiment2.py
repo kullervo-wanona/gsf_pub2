@@ -38,7 +38,7 @@ c_in=train_data_loader.image_size[1]
 n_in=train_data_loader.image_size[3]
 
 # flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[3]*10, squeeze_list=[0]*10)
-flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[5]*5+[3]*5, squeeze_list=([0]*2+[1]*1+[0]*2+[1]*2+[0]*3))
+flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[5]*5+[3]*5, squeeze_list=([0]*2+[1]*1+[0]*2+[1]*1+[0]*4))
 flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=5, test_normalization=False)
 
 n_param = 0
