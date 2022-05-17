@@ -25,6 +25,7 @@ class GenerativeSchurFlow(torch.nn.Module):
         self.nonlin_class = PReLU
         # self.nonlin_class = FixedSLogGate
         self.n_layers = len(self.k_list)
+        self.max_n_layer_conv = 3
 
         self.squeeze_layer = Squeeze()
         # self.squeeze_layers = [Squeeze(chan_mode='input_channels_apart', spatial_mode='tl-br-tr-bl'), 
@@ -48,7 +49,8 @@ class GenerativeSchurFlow(torch.nn.Module):
             curr_c = self.c_in*(4**accum_squeeze)
             curr_n = self.n_in//(2**accum_squeeze)
             curr_k = self.k_list[layer_id]
-            print('Layer '+str(layer_id)+': c='+str(curr_c)+', n='+str(curr_n)+', k='+str(curr_k))
+            layer_conv_k_list = np.unique(np.round(np.arange(1, curr_k+(curr_k-1)/(self.max_n_layer_conv-1), (curr_k-1)/(self.max_n_layer_conv-1)))).astype(int).tolist()
+            print('Layer '+str(layer_id)+': c='+str(curr_c)+', n='+str(curr_n)+', k list='+str(layer_conv_k_list))
             assert (curr_n >= curr_k)
 
             actnorm_layers.append(Actnorm(curr_c, curr_n, name=str(layer_id)))
@@ -57,9 +59,10 @@ class GenerativeSchurFlow(torch.nn.Module):
             pre_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, name='pre_'+str(layer_id)))
            
             layer_convs, layer_conv_nonlins = [], []
-            for layer_conv_id in range(curr_k):
+            
+            for layer_conv_id, layer_conv_k in enumerate(layer_conv_k_list):
                 layer_convs.append(MultiChannel2DCircularConv(
-                    curr_c, curr_n, layer_conv_id+1, kernel_init='I + he_uniform', 
+                    curr_c, curr_n, layer_conv_k, kernel_init='I + he_uniform', 
                     bias_mode='non-spatial', scale_mode='no-scale', name=str(layer_id)+'_'+str(layer_conv_id)))
                 layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, name='conv_'+str(layer_id)+'_'+str(layer_conv_id)))
 
