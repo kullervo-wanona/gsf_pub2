@@ -33,7 +33,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
         self.pre_conv_kernel_mult = 1
-        self.conv_kernel_max_diff = 0.7
+        self.conv_kernel_max_diff = 0.5
 
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
@@ -112,7 +112,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
 ########################################################################################################
 
 class AffineBounded(torch.nn.Module):
-    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=8, name=''):
+    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=16, name=''):
         super().__init__()
         assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
         assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])
@@ -326,7 +326,7 @@ class AffineInterpolate(torch.nn.Module):
 #             return nonlin_in
 
 class PReLU(torch.nn.Module):
-    def __init__(self, c, n, mode='non-spatial', slope_max=1.1, name=''):
+    def __init__(self, c, n, mode='spatial', slope_max=2, name=''):
         super().__init__()
         assert (mode in ['non-spatial', 'spatial'])
         assert (slope_max > 1)

@@ -54,7 +54,6 @@ class GenerativeSchurFlow(torch.nn.Module):
             actnorm_layers.append(Actnorm(curr_c, curr_n, name=str(layer_id)))
 
             pre_affine_layers.append(AffineBounded(curr_c, curr_n, name='pre_'+str(layer_id)))
-            # pre_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, mode='spatial', name='pre_'+str(layer_id)))
             pre_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, name='pre_'+str(layer_id)))
            
             layer_convs, layer_conv_nonlins = [], []
@@ -62,14 +61,13 @@ class GenerativeSchurFlow(torch.nn.Module):
                 layer_convs.append(MultiChannel2DCircularConv(
                     curr_c, curr_n, layer_conv_id+1, kernel_init='I + he_uniform', 
                     bias_mode='non-spatial', scale_mode='no-scale', name=str(layer_id)+'_'+str(layer_conv_id)))
-                # layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, mode='spatial', name='conv_'+str(layer_id)+'_'+str(layer_conv_id)))
                 layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, name='conv_'+str(layer_id)+'_'+str(layer_conv_id)))
 
             conv_layers.append(layer_convs)
             conv_nonlin_layers.append(layer_conv_nonlins)
 
-            # post_nonlin_layers.append(PReLU(curr_c, curr_n, mode='spatial', name='post_'+str(layer_id)))
             post_affine_layers.append(AffineBounded(curr_c, curr_n, name='post_'+str(layer_id)))
+            # post_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, name='post_'+str(layer_id)))
 
         self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
         self.pre_affine_layers = torch.nn.ModuleList(pre_affine_layers)
@@ -80,8 +78,8 @@ class GenerativeSchurFlow(torch.nn.Module):
         self.flat_conv_layers = torch.nn.ModuleList([e for layer_convs in self.conv_layers for e in layer_convs])
         self.flat_conv_nonlin_layers = torch.nn.ModuleList([e for layer_conv_nonlins in self.conv_nonlin_layers for e in layer_conv_nonlins])
 
-        # self.post_nonlin_layers = torch.nn.ModuleList(post_nonlin_layers)
         self.post_affine_layers = torch.nn.ModuleList(post_affine_layers)
+        # self.post_nonlin_layers = torch.nn.ModuleList(post_nonlin_layers)
 
         self.c_out = curr_c
         self.n_out = curr_n
