@@ -262,10 +262,11 @@ class GenerativeSchurFlow(torch.nn.Module):
 
             curr_y = y
             for layer_id in range(len(self.k_list)-1, -1,-1):
+
                 curr_y = self.post_nonlin_layers[layer_id].inverse_transform(curr_y)
                 curr_y = self.post_affine_layers[layer_id].inverse_transform(curr_y)
+
                 for layer_conv_id in range(len(self.conv_layers[layer_id])-1, -1,-1):
-                    
                     layer_conv_nonlin = self.conv_nonlin_layers[layer_id][layer_conv_id]
                     layer_conv = self.conv_layers[layer_id][layer_conv_id]
                     layer_actnorm = self.actnorm_layers[layer_id][layer_conv_id]
@@ -285,6 +286,8 @@ class GenerativeSchurFlow(torch.nn.Module):
         z, logdet = self.transform_with_logdet(x)
         log_pdf_z = self.compute_normal_log_pdf(z)
         log_pdf_x = log_pdf_z + logdet
+        for i in range(sum(self.squeeze_list)):
+            z = self.squeeze_layer.inverse_transform(z)
         return z, x, logdet, log_pdf_z, log_pdf_x
 
 

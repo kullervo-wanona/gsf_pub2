@@ -32,7 +32,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.kernel_init = kernel_init
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
-        self.pre_conv_kernel_mult = 1
+        self.pre_conv_kernel_mult = 0.1
         self.conv_kernel_max_diff = 0.5
 
         if self.kernel_init == 'I + he_uniform': 

@@ -64,7 +64,7 @@ for epoch in range(100000):
         train_image = helper.cuda(torch.from_numpy(batch_np['Image']))
         optimizer.zero_grad() 
 
-        z, x, logdet, log_pdf_z, log_pdf_x = flow_net(train_image)
+        _, _, logdet, log_pdf_z, log_pdf_x = flow_net(train_image)
         # train_loss = -torch.mean(logdet)-2*torch.mean(log_pdf_z)
         train_loss = -torch.mean(log_pdf_x)
 
@@ -81,11 +81,11 @@ for epoch in range(100000):
             test_latent, _ = flow_net.transform_with_logdet(test_image)
             test_image_reconst = flow_net.inverse_transform(test_latent)
 
-            _, _, _, train_log_pdf_z, train_log_pdf_x = flow_net(train_image)
+            train_latent, _, _, train_log_pdf_z, train_log_pdf_x = flow_net(train_image)
             mean_train_log_pdf_z = torch.mean(train_log_pdf_z)
             mean_train_log_pdf_x = torch.mean(train_log_pdf_x)
 
-            _, _, _, test_log_pdf_z, test_log_pdf_x = flow_net(train_image)
+            test_latent, _, _, test_log_pdf_z, test_log_pdf_x = flow_net(train_image)
             mean_test_log_pdf_z = torch.mean(test_log_pdf_z)
             mean_test_log_pdf_x = torch.mean(test_log_pdf_x)
 
@@ -94,9 +94,11 @@ for epoch in range(100000):
 
             helper.vis_samples_np(helper.cpu(train_image).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/train_real/', prefix='real', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(train_image_reconst).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/train_reconst/', prefix='reconst', resize=[256, 256])
+            helper.vis_samples_np(helper.cpu(train_latent+0.5).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/train_latent/', prefix='latent', resize=[256, 256])
 
             helper.vis_samples_np(helper.cpu(test_image).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/test_real/', prefix='real', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(test_image_reconst).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/test_reconst/', prefix='reconst', resize=[256, 256])
+            helper.vis_samples_np(helper.cpu(test_latent+0.5).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/test_latent/', prefix='latent', resize=[256, 256])
 
             helper.vis_samples_np(helper.cpu(image_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sample/', prefix='sample', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(image_sharper_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sharper_sample/', prefix='sharper_sample', resize=[256, 256])
