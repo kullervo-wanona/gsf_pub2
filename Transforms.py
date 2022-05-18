@@ -32,14 +32,14 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.kernel_init = kernel_init
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
-        self.pre_conv_kernel_mult = 0.1
+        self.pre_conv_kernel_mult = 1
         self.conv_kernel_max_diff = 0.5
 
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
             self.iden_kernel = helper.cuda(torch.tensor(iden_kernel_np, dtype=torch.float32))
 
-        pre_kernel_np = helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
+        pre_kernel_np = 0.1*helper.get_conv_initial_weight_kernel_np([self.k, self.k], self.c, self.c, 'he_uniform')
         pre_kernel_th = helper.cuda(torch.tensor(pre_kernel_np, dtype=torch.float32))
         pre_kernel_param = torch.nn.parameter.Parameter(data=pre_kernel_th, requires_grad=True)
         setattr(self, 'pre_kernel', pre_kernel_param)
