@@ -61,8 +61,8 @@ class GenerativeSchurFlow(torch.nn.Module):
             conv_layers.append(layer_convs)
             conv_nonlin_layers.append(layer_conv_nonlins)
 
-            # post_affine_layers.append(AffineBounded(curr_c, curr_n, name='post_affine_'+str(layer_id)))
-            # post_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, name='post_nonlin_'+str(layer_id)))
+            post_affine_layers.append(AffineBounded(curr_c, curr_n, name='post_affine_'+str(layer_id)))
+            post_nonlin_layers.append(self.nonlin_class(curr_c, curr_n, name='post_nonlin_'+str(layer_id)))
 
         self.actnorm_layers = actnorm_layers
         self.conv_layers = conv_layers
@@ -72,8 +72,8 @@ class GenerativeSchurFlow(torch.nn.Module):
         self.flat_conv_layers = torch.nn.ModuleList([e for layer_convs in self.conv_layers for e in layer_convs])
         self.flat_conv_nonlin_layers = torch.nn.ModuleList([e for layer_conv_nonlins in self.conv_nonlin_layers for e in layer_conv_nonlins])
 
-        # self.post_affine_layers = torch.nn.ModuleList(post_affine_layers)
-        # self.post_nonlin_layers = torch.nn.ModuleList(post_nonlin_layers)
+        self.post_affine_layers = torch.nn.ModuleList(post_affine_layers)
+        self.post_nonlin_layers = torch.nn.ModuleList(post_nonlin_layers)
 
         self.c_out = curr_c
         self.n_out = curr_n
@@ -246,11 +246,11 @@ class GenerativeSchurFlow(torch.nn.Module):
                 curr_y, conv_nonlin_logdet = self.conv_nonlin_layers[layer_id][layer_conv_id].transform_with_logdet(curr_y)
                 conv_nonlin_logdets.append(conv_nonlin_logdet)
 
-            # curr_y, post_affine_logdet = self.post_affine_layers[layer_id].transform_with_logdet(curr_y)
-            # post_affine_logdets.append(post_affine_logdet)
+            curr_y, post_affine_logdet = self.post_affine_layers[layer_id].transform_with_logdet(curr_y)
+            post_affine_logdets.append(post_affine_logdet)
 
-            # curr_y, post_nonlin_logdet = self.post_nonlin_layers[layer_id].transform_with_logdet(curr_y)
-            # post_nonlin_logdets.append(post_nonlin_logdet)
+            curr_y, post_nonlin_logdet = self.post_nonlin_layers[layer_id].transform_with_logdet(curr_y)
+            post_nonlin_logdets.append(post_nonlin_logdet)
 
         y = curr_y
         total_logdet = sum(actnorm_logdets)+sum(conv_logdets)+sum(conv_nonlin_logdets)+\
@@ -263,8 +263,8 @@ class GenerativeSchurFlow(torch.nn.Module):
             curr_y = y
             for layer_id in range(len(self.k_list)-1, -1,-1):
 
-                # curr_y = self.post_nonlin_layers[layer_id].inverse_transform(curr_y)
-                # curr_y = self.post_affine_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.post_nonlin_layers[layer_id].inverse_transform(curr_y)
+                curr_y = self.post_affine_layers[layer_id].inverse_transform(curr_y)
 
                 for layer_conv_id in range(len(self.conv_layers[layer_id])-1, -1,-1):
                     layer_conv_nonlin = self.conv_nonlin_layers[layer_id][layer_conv_id]
