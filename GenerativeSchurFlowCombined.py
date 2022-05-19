@@ -23,8 +23,8 @@ class GenerativeSchurFlowPart1(torch.nn.Module):
         self.k_list = k_list
         self.squeeze_list = squeeze_list
         self.final_actnorm = final_actnorm
-        self.nonlin_class = PReLU
-        # self.nonlin_class = FixedSLogGate
+        # self.nonlin_class = PReLU
+        self.nonlin_class = FixedSLogGate
         self.n_layers = len(self.k_list)
         self.max_n_layer_conv = 5
 
@@ -52,7 +52,8 @@ class GenerativeSchurFlowPart1(torch.nn.Module):
                 layer_convs.append(MultiChannel2DCircularConv(
                     curr_c, curr_n, layer_conv_k, kernel_init='I + he_uniform', 
                     bias_mode='non-spatial', scale_mode='no-scale', name='ConvFlow_conv_'+str(layer_id)+'_'+str(layer_conv_id)))
-                layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, mode='non-spatial', name='ConvFlow_conv_nonlin_'+str(layer_id)+'_'+str(layer_conv_id)))
+                # layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, mode='non-spatial', name='ConvFlow_conv_nonlin_'+str(layer_id)+'_'+str(layer_conv_id)))
+                layer_conv_nonlins.append(self.nonlin_class(curr_c, curr_n, name='ConvFlow_conv_nonlin_'+str(layer_id)+'_'+str(layer_conv_id)))
 
             actnorm_layers.append(layer_actnorms)
             conv_layers.append(layer_convs)
@@ -585,6 +586,7 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
     def transform_with_logdet(self, x, initialization=False):
         all_logdets = []
         layer_input = x
+        layer_out = x
 
         for block_id in range(self.n_cond_blocks):
             # print('forward:', block_id)
@@ -614,8 +616,9 @@ class GenerativeConditionalSchurFlow(torch.nn.Module):
 
     def inverse_transform(self, z):
         with torch.no_grad():
-
             layer_out = z
+            layer_input = z
+
             for block_id in range(self.n_cond_blocks-1, -1, -1):
                 # print('inverting:', block_id)
                 layer_out_squeezed, _ = self.squeeze_layers[block_id % len(self.squeeze_layers)].transform_with_logdet(layer_out)
