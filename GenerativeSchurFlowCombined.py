@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 import helper
-from Transforms import MultiChannel2DCircularConv, AffineBounded, PReLU, FixedSLogGate, Actnorm, ActnormNoLearning, Squeeze
+from Transforms import MultiChannel2DCircularConv, AffineBounded, PReLU, FixedSLogGate, SLogGate, Actnorm, ActnormNoLearning, Squeeze
 from ConditionalTransforms import CondAffine, CondAffineBounded
 
 class GenerativeSchurFlowPart1(torch.nn.Module):
