@@ -33,7 +33,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
         self.pre_conv_kernel_mult = 1
-        self.conv_kernel_max_diff = 0.01
+        self.conv_kernel_max_diff = 0.5
 
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
