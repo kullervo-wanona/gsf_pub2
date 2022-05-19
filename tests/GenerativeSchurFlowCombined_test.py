@@ -28,7 +28,7 @@ _, _, example_batch = next(data_loader)
 c_in = 3
 n_in = 16
 
-flow_net = GenerativeSchurFlowCombined(c_in=c_in, n_in=n_in, conv_k_list=[3, 3], conv_squeeze_list=[0, 1], n_cond_blocks=0)
+flow_net = GenerativeSchurFlowCombined(c_in=c_in, n_in=n_in, conv_k_list=[3, 3], conv_squeeze_list=[0, 1], n_cond_blocks=3)
 flow_net.set_actnorm_parameters(data_loader, setup_mode='Training', n_batches=10, test_normalization=True, sub_image=[c_in, n_in, n_in])
 
 n_param = 0

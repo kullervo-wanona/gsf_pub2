@@ -279,13 +279,13 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
 
             actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
-            # conv_layers.append(MultiChannel2DCircularConv(
-            #     curr_c, curr_n, 3, kernel_init='I + he_uniform', 
-            #     bias_mode='non-spatial', scale_mode='no-scale', name='ConditionalFlow_conv_'+str(layer_id)))
+            conv_layers.append(MultiChannel2DCircularConv(
+                curr_c, curr_n, 3, kernel_init='I + he_uniform', 
+                bias_mode='non-spatial', scale_mode='no-scale', name='ConditionalFlow_conv_'+str(layer_id)))
 
-            conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, 3, kernel_init='I + net', bias_mode='non-spatial', name=str(layer_id))
-            self.non_spatial_conditional_transforms[conv_layer.name] = conv_layer
-            conv_layers.append(conv_layer)
+            # conv_layer = CondMultiChannel2DCircularConv(curr_c, curr_n, 3, kernel_init='I + net', bias_mode='non-spatial', name=str(layer_id))
+            # self.non_spatial_conditional_transforms[conv_layer.name] = conv_layer
+            # conv_layers.append(conv_layer)
 
             affine_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name=str(layer_id))
             # affine_layer = CondAffineBounded(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name=str(layer_id))
@@ -426,7 +426,12 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
             if initialization and not self.actnorm_layers[layer_id].initialized: 
                 return curr_y, self.actnorm_layers[layer_id]
 
-            # curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y)
+            curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y)
+            conv_logdets.append(conv_logdet)
+
+            # curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
+            # conv_pre_kernel, conv_bias = curr_params["pre_kernel"], curr_params["bias"]
+            # curr_y, conv_logdet = self.conv_layers[layer_id].transform_with_logdet(curr_y, conv_pre_kernel, conv_bias)
             # conv_logdets.append(conv_logdet)
 
             curr_params = non_spatial_param_assignments[self.affine_layers[layer_id].name]
@@ -438,7 +443,7 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
             # nonlin_logdets.append(nonlin_logdet)
 
         y = curr_y
-        total_log_det = sum(actnorm_logdets)+sum(affine_logdets)+sum(nonlin_logdets)
+        total_log_det = sum(actnorm_logdets)+sum(affine_logdets)+sum(conv_logdets)+sum(nonlin_logdets)
         return y, total_log_det
 
     def inverse_transform(self, y, non_spatial_param, spatial_param):
@@ -457,7 +462,11 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
                 affine_bias, affine_pre_scale = curr_params["bias"], curr_params["pre_scale"]
                 curr_y = self.affine_layers[layer_id].inverse_transform(curr_y, affine_bias, affine_pre_scale)
         
-                # curr_y = self.conv_layers[layer_id].inverse_transform(curr_y)
+                # curr_params = non_spatial_param_assignments[self.conv_layers[layer_id].name]
+                # conv_pre_kernel, conv_bias = curr_params["pre_kernel"], curr_params["bias"]
+                # curr_y = self.conv_layers[layer_id].inverse_transform(curr_y, conv_pre_kernel, conv_bias)
+
+                curr_y = self.conv_layers[layer_id].inverse_transform(curr_y)
 
                 curr_y = self.actnorm_layers[layer_id].inverse_transform(curr_y)
                 
@@ -815,7 +824,7 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         # z_first, logdet_first = self.conv_flow_net.transform_with_logdet(x, initialization)
         # if type(logdet_first) is Actnorm or type(logdet_first) is ActnormNoLearning: return z_first, logdet_first
 
-        # z_first, logdet_first = x, 0
+        z_first, logdet_first = x, 0
 
         z_second, logdet_second = self.conditional_flow_net.transform_with_logdet(z_first, initialization)
         if type(logdet_second) is Actnorm or type(logdet_second) is ActnormNoLearning: return z_second, logdet_second
@@ -833,6 +842,7 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
     def inverse_transform(self, z):
         with torch.no_grad():
             z_second = z
+            z_first = z_second
 
             # z_first = self.conditional_flow_net.inverse_transform(z_second)
             # x = self.conv_flow_net.inverse_transform(z_first)
