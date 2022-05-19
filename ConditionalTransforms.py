@@ -108,14 +108,14 @@ class CondAffineInterpolate(torch.nn.Module):
 
 ########################################################################################################
 
-class CondAffine(torch.nn.Module):
+class CondAffineBounded(torch.nn.Module):
     def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=32, name=''):
         super().__init__()
         assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
         assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])
         assert (bias_mode != 'no-bias' or scale_mode != 'no-bias')
 
-        self.name = 'CondAffine_' + name
+        self.name = 'CondAffineBounded_' + name
         self.n = n
         self.c = c
         self.bias_mode = bias_mode
@@ -186,6 +186,81 @@ class CondAffine(torch.nn.Module):
             affine_in = affine_out 
             
             return affine_in
+
+class CondAffine(torch.nn.Module):
+    def __init__(self, c, n, bias_mode='spatial', scale_mode='spatial', scale_max=32, name=''):
+        super().__init__()
+        assert (bias_mode in ['no-bias', 'non-spatial', 'spatial'])
+        assert (scale_mode in ['no-scale', 'non-spatial', 'spatial'])
+        assert (bias_mode != 'no-bias' or scale_mode != 'no-bias')
+
+        self.name = 'CondAffine_' + name
+        self.n = n
+        self.c = c
+        self.bias_mode = bias_mode
+        self.scale_mode = scale_mode
+        self.pre_scale_mult = 1
+
+        self.parameter_sizes = {}
+        self.parameter_sizes['bias'] = None
+        if self.bias_mode == 'spatial':
+            self.parameter_sizes['bias'] = [-1, self.c, self.n, self.n]
+        elif self.bias_mode == 'non-spatial': 
+            self.parameter_sizes['bias'] = [-1, self.c, 1, 1]
+
+        self.parameter_sizes['pre_scale'] = None
+        if self.scale_mode == 'spatial':
+            self.parameter_sizes['pre_scale'] = [-1, self.c, self.n, self.n]
+        elif self.scale_mode == 'non-spatial': 
+            self.parameter_sizes['pre_scale'] = [-1, self.c, 1, 1]
+
+    def compute_scale(self, pre_scale):
+        scale = torch.exp(self.pre_scale_mult*pre_scale)
+        return scale 
+
+    def transform_with_logdet(self, affine_in, bias, pre_scale, check_sizes=False):
+        if check_sizes: 
+            if self.bias_mode != 'no-bias': 
+                assert (bias.shape == self.parameter_sizes['bias'])
+            if self.scale_mode != 'no-scale': 
+                assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
+        
+        if self.scale_mode != 'no-scale': 
+            scale = self.compute_scale(pre_scale)
+
+        affine_out = affine_in
+        if self.scale_mode != 'no-scale': 
+            affine_out = affine_out*scale
+        if self.bias_mode != 'no-bias': 
+            affine_out = affine_out+bias
+
+        logdet = 0
+        if self.scale_mode == 'spatial': 
+            logdet = torch.log(scale).sum(axis=[1, 2, 3])
+        elif self.scale_mode == 'non-spatial':
+            logdet = (self.n*self.n)*torch.log(scale).sum(axis=[1, 2, 3])
+            
+        return affine_out, logdet
+
+    def inverse_transform(self, affine_out, bias, pre_scale, check_sizes=False):
+        with torch.no_grad():
+            if check_sizes: 
+                if self.bias_mode != 'no-bias': 
+                    assert (bias.shape == self.parameter_sizes['bias'])
+                if self.scale_mode != 'no-scale': 
+                    assert (pre_scale.shape == self.parameter_sizes['pre_scale'])
+            
+            if self.scale_mode != 'no-scale': 
+                scale = self.compute_scale(pre_scale)
+
+            if self.bias_mode != 'no-bias': 
+                affine_out = affine_out-bias
+            if self.scale_mode != 'no-scale': 
+                affine_out = affine_out/(scale+1e-5)
+            affine_in = affine_out 
+            
+            return affine_in
+
 
 ########################################################################################################
 

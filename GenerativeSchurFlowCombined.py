@@ -11,7 +11,7 @@ import torch
 
 import helper
 from Transforms import MultiChannel2DCircularConv, AffineBounded, PReLU, FixedSLogGate, Actnorm, ActnormNoLearning, Squeeze
-from ConditionalTransforms import CondAffine
+from ConditionalTransforms import CondAffine, CondAffineBounded
 
 class GenerativeSchurFlowPart1(torch.nn.Module):
     def __init__(self, c_in, n_in, k_list, squeeze_list, final_actnorm=False):
@@ -279,6 +279,7 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
             actnorm_layers.append(Actnorm(curr_c, curr_n, mode='non-spatial', name=str(layer_id)))
 
             affine_layer = CondAffine(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name=str(layer_id))
+            # affine_layer = CondAffineBounded(curr_c, curr_n, bias_mode='spatial', scale_mode='spatial', name=str(layer_id))
             self.non_spatial_conditional_transforms[affine_layer.name] = affine_layer
             affine_layers.append(affine_layer)
 
@@ -286,7 +287,7 @@ class ConditionalSchurTransformPart2(torch.nn.Module):
 
         self.actnorm_layers = torch.nn.ModuleList(actnorm_layers)
         self.affine_layers = torch.nn.ModuleList(affine_layers)
-        self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
+        # self.nonlin_layers = torch.nn.ModuleList(nonlin_layers)
 
         self.c_out = curr_c
         self.n_out = curr_n
@@ -812,7 +813,7 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
             z_first = self.conditional_flow_net.inverse_transform(z_second)
             # x = self.conv_flow_net.inverse_transform(z_first)
             x = z_first
-            
+
             x = x+0.5
             return x
 
