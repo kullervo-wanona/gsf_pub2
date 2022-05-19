@@ -38,7 +38,7 @@ c_in=train_data_loader.image_size[1]
 n_in=train_data_loader.image_size[3]
 
 flow_net = GenerativeSchurFlowCombined(c_in, n_in, conv_k_list=[5], conv_squeeze_list=[0], n_cond_blocks=10)
-flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=5, test_normalization=False)
+# flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=5, test_normalization=False)
 
 n_param = 0
 for name, e in flow_net.named_parameters():
@@ -50,7 +50,7 @@ n_param = 0
 for e in flow_net.parameters():
     n_param += np.prod(e.shape)
 print('Total number of parameters: ' + str(n_param))
-
+trace()
 optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.999), eps=1e-08, weight_decay=5e-5)
 

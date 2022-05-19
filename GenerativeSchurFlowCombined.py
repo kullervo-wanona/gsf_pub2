@@ -65,9 +65,9 @@ class GenerativeSchurFlowPart1(torch.nn.Module):
         self.conv_layers = conv_layers
         self.conv_nonlin_layers = conv_nonlin_layers
 
-        self.flat_actnorm_layers = torch.nn.ModuleList([e for layer_actnorms in self.actnorm_layers for e in layer_convs])
-        self.flat_conv_layers = torch.nn.ModuleList([e for layer_convs in self.conv_layers for e in layer_convs])
-        self.flat_conv_nonlin_layers = torch.nn.ModuleList([e for layer_conv_nonlins in self.conv_nonlin_layers for e in layer_conv_nonlins])
+        self.flat_actnorm_layers = torch.nn.ModuleList([e for layer_actnorms_ee in self.actnorm_layers for e in layer_actnorms_ee])
+        self.flat_conv_layers = torch.nn.ModuleList([e for layer_convs_ee in self.conv_layers for e in layer_convs_ee])
+        self.flat_conv_nonlin_layers = torch.nn.ModuleList([e for layer_conv_nonlins_ee in self.conv_nonlin_layers for e in layer_conv_nonlins_ee])
 
         self.post_affine_layers = torch.nn.ModuleList(post_affine_layers)
         self.post_nonlin_layers = torch.nn.ModuleList(post_nonlin_layers)
