@@ -17,9 +17,7 @@ import numpy as np
 import torch
 
 import helper
-# from GenerativeSchurFlow2 import GenerativeSchurFlow
-# from GenerativeSchurFlow3 import GenerativeSchurFlow
-from GenerativeSchurFlow4 import GenerativeSchurFlow
+from GenerativeSchurFlowCombined import GenerativeSchurFlowCombined
 
 # from DataLoaders.MNIST.MNISTLoader import DataLoader
 # from DataLoaders.MNIST.ColorMNISTLoader import DataLoader
@@ -39,8 +37,7 @@ test_image = helper.cuda(torch.from_numpy(example_test_batch['Image']))
 c_in=train_data_loader.image_size[1]
 n_in=train_data_loader.image_size[3]
 
-# flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[3]*10, squeeze_list=[0]*10)
-flow_net = GenerativeSchurFlow(c_in, n_in, k_list=[5]*5+[3]*5, squeeze_list=([0]*2+[1]*1+[0]*2+[1]*1+[0]*4))
+flow_net = GenerativeSchurFlowCombined(c_in, n_in, conv_k_list=[5, 3, 3], conv_squeeze_list=[0, 1, 1], n_cond_blocks=2)
 flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=5, test_normalization=False)
 
 n_param = 0
@@ -53,6 +50,8 @@ n_param = 0
 for e in flow_net.parameters():
     n_param += np.prod(e.shape)
 print('Total number of parameters: ' + str(n_param))
+
+trace()
 
 optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.5, 0.9), eps=1e-08)
 # optimizer = torch.optim.Adam(flow_net.parameters(), lr=0.0001, betas=(0.9, 0.999), eps=1e-08, weight_decay=5e-5)
@@ -103,7 +102,8 @@ for epoch in range(100000):
 
             helper.vis_samples_np(helper.cpu(image_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sample/', prefix='sample', resize=[256, 256])
             helper.vis_samples_np(helper.cpu(image_sharper_sample).detach().numpy(), sample_dir=str(Path.home())+'/ExperimentalResults/samples_from_schur/sharper_sample/', prefix='sharper_sample', resize=[256, 256])
-
+            trace()
+            
             # if i % 1000 == 0:
             #     test_all_z = flow_net.transform_all_layers(test_image)
             #     for layer_id in range(len(test_all_z)):
