@@ -11,7 +11,7 @@ import torch
 
 import helper
 from Transforms import MultiChannel2DCircularConv, AffineBounded, PReLU, FixedSLogGate, Actnorm, ActnormNoLearning, Squeeze
-from ConditionalTransforms import CondMultiChannel2DCircularConv, CondAffine, CondAffineInterpolate
+from ConditionalTransforms import CondAffine
 
 class GenerativeSchurFlowPart1(torch.nn.Module):
     def __init__(self, c_in, n_in, k_list, squeeze_list, final_actnorm=False):
