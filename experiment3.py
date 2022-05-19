@@ -37,7 +37,7 @@ test_image = helper.cuda(torch.from_numpy(example_test_batch['Image']))
 c_in=train_data_loader.image_size[1]
 n_in=train_data_loader.image_size[3]
 
-flow_net = GenerativeSchurFlowCombined(c_in, n_in, conv_k_list=[3, 3], conv_squeeze_list=[0, 1], n_cond_blocks=10)
+flow_net = GenerativeSchurFlowCombined(c_in, n_in, conv_k_list=[5], conv_squeeze_list=[0], n_cond_blocks=10)
 flow_net.set_actnorm_parameters(train_data_loader, setup_mode='Training', n_batches=5, test_normalization=False)
 
 n_param = 0

@@ -26,7 +26,7 @@ class GenerativeSchurFlowPart1(torch.nn.Module):
         self.nonlin_class = PReLU
         # self.nonlin_class = FixedSLogGate
         self.n_layers = len(self.k_list)
-        self.max_n_layer_conv = 3
+        self.max_n_layer_conv = 5
 
         self.squeeze_layer = Squeeze()
 
