@@ -86,7 +86,7 @@ for epoch in range(100000):
             mean_train_log_pdf_z = torch.mean(train_log_pdf_z)
             mean_train_log_pdf_x = torch.mean(train_log_pdf_x)
 
-            test_latent, _, _, test_log_pdf_z, test_log_pdf_x = flow_net(train_image)
+            test_latent, _, _, test_log_pdf_z, test_log_pdf_x = flow_net(test_image)
             mean_test_log_pdf_z = torch.mean(test_log_pdf_z)
             mean_test_log_pdf_x = torch.mean(test_log_pdf_x)
 

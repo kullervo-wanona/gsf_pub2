@@ -640,7 +640,7 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
         self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.7])))
 
-        self.conv_flow_net = GenerativeSchurFlowPart1(c_in, n_in, k_list=self.conv_k_list, squeeze_list=self.conv_squeeze_list)
+        # self.conv_flow_net = GenerativeSchurFlowPart1(c_in, n_in, k_list=self.conv_k_list, squeeze_list=self.conv_squeeze_list)
         self.conditional_flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_cond_blocks=self.n_cond_blocks)
 
         self.c_out = self.c_in
@@ -793,8 +793,11 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         all_logdets = []
 
         x = x-0.5
-        z_first, logdet_first = self.conv_flow_net.transform_with_logdet(x, initialization)
-        if type(logdet_first) is Actnorm or type(logdet_first) is ActnormNoLearning: return z_first, logdet_first
+
+        # z_first, logdet_first = self.conv_flow_net.transform_with_logdet(x, initialization)
+        # if type(logdet_first) is Actnorm or type(logdet_first) is ActnormNoLearning: return z_first, logdet_first
+
+        z_first, logdet_first = x, 0
 
         z_second, logdet_second = self.conditional_flow_net.transform_with_logdet(z_first, initialization)
         if type(logdet_second) is Actnorm or type(logdet_second) is ActnormNoLearning: return z_second, logdet_second
@@ -807,7 +810,9 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         with torch.no_grad():
             z_second = z
             z_first = self.conditional_flow_net.inverse_transform(z_second)
-            x = self.conv_flow_net.inverse_transform(z_first)
+            # x = self.conv_flow_net.inverse_transform(z_first)
+            x = z_first
+            
             x = x+0.5
             return x
 
