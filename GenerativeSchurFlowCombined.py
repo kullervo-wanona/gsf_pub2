@@ -651,7 +651,7 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         self.normal_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([1.0])))
         self.normal_sharper_dist = torch.distributions.Normal(helper.cuda(torch.tensor([0.0])), helper.cuda(torch.tensor([0.7])))
 
-        # self.conv_flow_net = GenerativeSchurFlowPart1(c_in, n_in, k_list=self.conv_k_list, squeeze_list=self.conv_squeeze_list)
+        self.conv_flow_net = GenerativeSchurFlowPart1(c_in, n_in, k_list=self.conv_k_list, squeeze_list=self.conv_squeeze_list)
         self.conditional_flow_net = GenerativeConditionalSchurFlow(c_in, n_in, n_cond_blocks=self.n_cond_blocks)
 
         self.c_out = self.c_in
