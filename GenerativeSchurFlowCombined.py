@@ -24,7 +24,7 @@ class GenerativeSchurFlowPart1(torch.nn.Module):
         self.squeeze_list = squeeze_list
         self.final_actnorm = final_actnorm
         # self.nonlin_class = PReLU
-        self.nonlin_class = FixedSLogGate
+        self.nonlin_class = SLogGate
         self.n_layers = len(self.k_list)
         self.max_n_layer_conv = 5
 
@@ -819,8 +819,6 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
         z_first, logdet_first = self.conditional_flow_net.transform_with_logdet(x, initialization)
         if type(logdet_first) is Actnorm or type(logdet_first) is ActnormNoLearning: return z_first, logdet_first
 
-        # z_first, logdet_first = x, 0
-
         z_second, logdet_second = self.conv_flow_net.transform_with_logdet(z_first, initialization)
         if type(logdet_second) is Actnorm or type(logdet_second) is ActnormNoLearning: return z_second, logdet_second
 
@@ -831,6 +829,10 @@ class GenerativeSchurFlowCombined(torch.nn.Module):
     def inverse_transform(self, z):
         with torch.no_grad():
             z_second = z
+
+            # z_first = self.conditional_flow_net.inverse_transform(z_second)
+            # x = self.conv_flow_net.inverse_transform(z_first)
+
             z_first = self.conv_flow_net.inverse_transform(z_second)
             x = self.conditional_flow_net.inverse_transform(z_first)
 
