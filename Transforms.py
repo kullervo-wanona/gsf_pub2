@@ -33,7 +33,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
         self.bias_mode = bias_mode
         self.scale_mode = scale_mode
         self.pre_conv_kernel_mult = 1
-        self.conv_kernel_max_diff = 0.5
+        self.conv_kernel_max_diff = 0.01
 
         if self.kernel_init == 'I + he_uniform': 
             _, iden_kernel_np = spatial_conv2D_lib.generate_identity_kernel(self.c, self.k, 'full', backend='numpy')
@@ -67,10 +67,13 @@ class MultiChannel2DCircularConv(torch.nn.Module):
             log_scale_param = torch.nn.parameter.Parameter(data=log_scale_th, requires_grad=True)
             setattr(self, 'log_scale', log_scale_param)
 
+    def compute_kernel(self, pre_kernel):
+        return self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
+
     def transform_with_logdet(self, conv_in):
         pre_kernel = getattr(self, 'pre_kernel')
 
-        K = self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
+        K = self.compute_kernel(pre_kernel)
         if self.kernel_init == 'I + he_uniform': K = K + self.iden_kernel
         conv_out = spatial_conv2D_lib.spatial_circular_conv2D_th(conv_in, K)
 
@@ -103,7 +106,7 @@ class MultiChannel2DCircularConv(torch.nn.Module):
                 conv_out = conv_out-bias
 
             pre_kernel = getattr(self, 'pre_kernel')
-            K = self.conv_kernel_max_diff*torch.tanh(self.pre_conv_kernel_mult*pre_kernel)
+            K = self.compute_kernel(pre_kernel)
             if self.kernel_init == 'I + he_uniform': K = K + self.iden_kernel
             conv_in = self.conv_inverse_func(conv_out, K)
 
